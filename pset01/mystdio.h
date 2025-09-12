@@ -19,6 +19,7 @@ struct MYSTREAM {
     char* buffer;
     int pos;
     int readbytes;
+    //int writebytes;
 };
 
 struct MYSTREAM *myfopen(const char *pathname, const char *mode);

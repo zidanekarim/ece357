@@ -92,5 +92,31 @@ int myfgetc(struct MYSTREAM *stream) {
 }
 
 
-int myfputc(int c,struct MYSTREAM *stream);
-int myfclose(struct MYSTREAM *stream);
+int myfputc(int c,struct MYSTREAM *stream) {
+    if (strcmp(stream->mode, "w") == 0) {
+        stream->buffer[stream->pos++] = (char) c;
+        if (stream->pos==BUFSIZ) {
+            int write_f = write(stream->fd, stream->buffer, stream->pos);
+            if (write_f == -1 || write_f != BUFSIZ) return -1;
+
+        }
+    }
+    else {
+        errno = EBADF;
+        return -1;
+    }
+    stream->pos = 0; 
+    return c; 
+}
+
+int myfclose(struct MYSTREAM *stream) {
+    if (strcmp(stream->mode, "w") == 0) {
+        int write_f = write(stream->fd, stream->buffer, stream->pos);
+        if (write_f == -1) return -1;
+    }
+    int close_f = close(stream->fd);
+    if (close_f == -1) return -1; 
+    free(stream->buffer);
+    free(stream);
+    return 0;
+}
