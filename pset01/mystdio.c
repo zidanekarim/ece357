@@ -35,6 +35,8 @@ struct MYSTREAM *myfopen(const char *pathname, const char *mode) {
     open_f->fd = fd;
     open_f->buffer = buffer;
     open_f->mode = mode;
+    open_f->pos=0;
+    open_f->readbytes=0;
     return open_f;
 }
 
@@ -60,11 +62,35 @@ struct MYSTREAM *myfdopen(int filedesc, const char *mode) {
     open_f->fd = filedesc; 
     open_f->buffer=buffer;
     open_f->mode=mode; // no need to think about mode too much given the provision, "It is assumed that the file descriptor was opened with a mode that is identical to or compatible with mode."
+    open_f->pos=0;
+    open_f->readbytes=0;
     return open_f;
 }
 
 
 
-int myfgetc(struct MYSTREAM *stream);
+int myfgetc(struct MYSTREAM *stream) {
+    if (strcmp(stream->mode, "r") == 0) {
+        if (stream->pos >= stream->readbytes) {
+            int read_size = read(stream->fd, stream->buffer, BUFSIZ);
+            if (read_size == -1) return -1; 
+            else if (read_size==0) {
+                errno = 0; // no error, just end of file 
+                return -1; 
+            }
+            stream->readbytes = read_size;
+
+        }
+        int next = (int) (stream->buffer)[stream->pos++]; // return int to avoid  EOF char issues. increment pos rather than the buffer itself to preserve data (in case of lseek)
+        return next;
+
+    }
+    else {
+        errno = EBADF;
+        return -1;
+    }
+}
+
+
 int myfputc(int c,struct MYSTREAM *stream);
 int myfclose(struct MYSTREAM *stream);

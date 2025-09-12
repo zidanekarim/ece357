@@ -17,6 +17,8 @@ struct MYSTREAM {
     int fd; //  file descriptor is lowest value from C open syscall
     char* mode;  // file open mode
     char* buffer;
+    int pos;
+    int readbytes;
 };
 
 struct MYSTREAM *myfopen(const char *pathname, const char *mode);
