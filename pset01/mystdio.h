@@ -5,7 +5,7 @@ Zidane Karim -- zidanekarim @ github
 #ifndef MYSTDIO_H
 #define MYSTDIO_H
 
-#define BUFSIZ 1024
+#define BUFSIZ 4096 // defined by default in stdio but that lib is not included for now
 
 #include <stdlib.h>
 #include <errno.h>
