@@ -1,3 +1,7 @@
+/*
+Zidane Karim -- zidanekarim @ github
+*/
+
 #ifndef MYSTDIO_H
 #define MYSTDIO_H
 
