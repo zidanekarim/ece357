@@ -76,7 +76,7 @@ int main(int argc, char** argv ) {
     while ((read_char = myfgetc(f_in)) != -1) {
         if (read_char == 9) {
             for (int i=0; i<4; i++) {
-                write_char = myfputc(32, f_out); // 32 is space
+                write_char = myfputc(32, f_out); // 32 is space, writes 4 times then moves to next char 
                 if (write_char < 0) {
                     perror("Bad input to output file. Could not write space char");
                     return 255;
