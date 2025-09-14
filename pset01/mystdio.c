@@ -72,6 +72,7 @@ struct MYSTREAM *myfdopen(int filedesc, const char *mode) {
 int myfgetc(struct MYSTREAM *stream) {
     if (strcmp(stream->mode, "r") == 0) {
         if (stream->pos >= stream->readbytes) {
+            stream->pos=0; // reset pos
             int read_size = read(stream->fd, stream->buffer, BUFSIZ);
             if (read_size == -1) return -1; 
             else if (read_size==0) {
@@ -97,6 +98,7 @@ int myfputc(int c,struct MYSTREAM *stream) {
     if (strcmp(stream->mode, "w") == 0) {
         stream->buffer[stream->pos++] = (char) c;
         if (stream->pos==BUFSIZ) {
+            stream->pos=0; // reset pos
             int write_f = write(stream->fd, stream->buffer, stream->pos);
             if (write_f == -1 || write_f != BUFSIZ) return -1;
         }
