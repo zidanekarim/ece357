@@ -111,7 +111,7 @@ int myfputc(int c,struct MYSTREAM *stream) {
 int myfclose(struct MYSTREAM *stream) {
     if (strcmp(stream->mode, "w") == 0 && stream->pos > 0) {
         int write_f = write(stream->fd, stream->buffer, stream->pos);
-        if (write_f == -1) return -1;
+        if (write_f == -1 || write_f != stream->pos) return -1;
     }
     int close_f = close(stream->fd);
     if (close_f == -1) return -1; 
