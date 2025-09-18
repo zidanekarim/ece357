@@ -19,11 +19,12 @@ struct MYSTREAM {
     char* buffer;
     int pos;
     int readbytes;
+    int bufsiz;
     //int writebytes;
 };
 
-struct MYSTREAM *myfopen(const char *pathname, const char *mode);
-struct MYSTREAM *myfdopen(int filedesc, const char *mode);
+struct MYSTREAM *myfopen(const char *pathname, const char *mode, int bufsiz);
+struct MYSTREAM *myfdopen(int filedesc, const char *mode, int bufsiz);
 int myfgetc(struct MYSTREAM *stream);
 int myfputc(int c,struct MYSTREAM *stream);
 int myfclose(struct MYSTREAM *stream);

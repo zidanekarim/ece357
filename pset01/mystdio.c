@@ -4,7 +4,7 @@ Zidane Karim -- zidanekarim @ github
 
 #include "mystdio.h"
 
-struct MYSTREAM *myfopen(const char *pathname, const char *mode) {
+struct MYSTREAM *myfopen(const char *pathname, const char *mode, int bufsiz) {
     int fd;
     if (strcmp("r", mode) == 0) {
         fd = open(pathname, O_RDONLY, 0666); // open with read only mode
@@ -23,11 +23,12 @@ struct MYSTREAM *myfopen(const char *pathname, const char *mode) {
         errno = EINVAL;
         return NULL;
     }
+    
     struct MYSTREAM* open_f = (struct MYSTREAM*)malloc(sizeof(struct MYSTREAM));
     if (open_f == NULL) {
         return NULL; 
     }
-    char* buffer = (char*) malloc(BUFSIZ*sizeof(char)+1); // add 1 for null terminator
+    char* buffer = (char*) malloc(bufsiz+1); // add 1 for null terminator
     if (buffer == NULL) {
         free(open_f);
         return NULL; 
@@ -37,12 +38,13 @@ struct MYSTREAM *myfopen(const char *pathname, const char *mode) {
     open_f->mode = mode;
     open_f->pos=0;
     open_f->readbytes=0;
+    open_f->bufsiz=bufsiz;
     return open_f;
 }
 
 
 
-struct MYSTREAM *myfdopen(int filedesc, const char *mode) {
+struct MYSTREAM *myfdopen(int filedesc, const char *mode, int bufsiz) {
     if (!(strcmp("r", mode) == 0 || strcmp("w", mode) == 0)) {
         errno = EINVAL; // set invalid mode errno and return
         return NULL;
@@ -64,6 +66,7 @@ struct MYSTREAM *myfdopen(int filedesc, const char *mode) {
     open_f->mode=mode; // no need to think about mode too much given the provision, "It is assumed that the file descriptor was opened with a mode that is identical to or compatible with mode."
     open_f->pos=0;
     open_f->readbytes=0;
+    open_f->bufsiz=bufsiz;
     return open_f;
 }
 
@@ -73,7 +76,7 @@ int myfgetc(struct MYSTREAM *stream) {
     if (strcmp(stream->mode, "r") == 0) {
         if (stream->pos >= stream->readbytes) {
             stream->pos=0; // reset pos
-            int read_size = read(stream->fd, stream->buffer, BUFSIZ);
+            int read_size = read(stream->fd, stream->buffer, stream->bufsiz);
             if (read_size == -1) return -1; 
             else if (read_size==0) {
                 errno = 0; // no error, just end of file 
@@ -97,7 +100,7 @@ int myfgetc(struct MYSTREAM *stream) {
 int myfputc(int c,struct MYSTREAM *stream) {
     if (strcmp(stream->mode, "w") == 0) {
         stream->buffer[stream->pos++] = (char) c;
-        if (stream->pos==BUFSIZ) {
+        if (stream->pos==stream->bufsiz) {
             int write_f = write(stream->fd, stream->buffer, stream->pos);
             if (write_f == -1 || write_f != BUFSIZ) return -1;
             stream->pos = 0; // reset pos
