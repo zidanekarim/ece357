@@ -55,7 +55,7 @@ struct MYSTREAM *myfdopen(int filedesc, const char *mode, int bufsiz) {
         return NULL; 
     }
 
-    char* buffer = (char*) malloc(BUFSIZ*sizeof(char)+1); // add 1 for null terminator
+    char* buffer = (char*) malloc(bufsiz+1); // add 1 for null terminator
     if (buffer == NULL) {
         free(open_f);
         return NULL; 
@@ -102,8 +102,13 @@ int myfputc(int c,struct MYSTREAM *stream) {
         stream->buffer[stream->pos++] = (char) c;
         if (stream->pos==stream->bufsiz) {
             int write_f = write(stream->fd, stream->buffer, stream->pos);
-            if (write_f == -1 || write_f != BUFSIZ) return -1;
-            stream->pos = 0; // reset pos
+            if (write_f == -1) return -1;
+
+            if (write_f != stream->pos) {
+                errno = EIO; // partial write so treat as error
+                return -1;
+            }
+        stream->pos = 0; // reset pos
         }
     }
     else {
