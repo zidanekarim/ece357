@@ -3,7 +3,16 @@
 
 int print_entry(char* pattern, char* pathname, bool verbose) {
     if (pattern == NULL) {
-        
+        struct stat path_stat;
+        if (stat(pathname, &path_stat) == -1) {
+            return -1;
+        }
+        if (verbose) {
+            printf("%d  %d %s %d %s %s %d ");
+        }
+        else {
+            printf("%s\n", pathname);
+        }
 
     }
     else {
@@ -16,7 +25,10 @@ int print_entry(char* pattern, char* pathname, bool verbose) {
 
 int traverse(char* pattern, char* path, bool verbose, bool x) {
     DIR* directory = opendir(path);
-    if (directory == NULL) return -1;
+    if (directory == NULL) {
+        closedir(path);
+        return -1;
+    }
     struct dirent* dir_entry;
     //struct entry* current;
     //struct entry** results = NULL;
@@ -36,7 +48,7 @@ int traverse(char* pattern, char* path, bool verbose, bool x) {
 
 
     // now we use readdir to read contents of directory
-    while ((dir_entry = readdir(directory)) != NULL) { // once directory is empty (meaning we've looked through it), we can return from the function
+    while ((dir_entry = readdir(directory)) != NULL) { // once directory is empty (meaning we've looked through it, we can return from the function
         char new_path[256];
         snprintf(new_path, sizeof(new_path), "%s/%s", path, dir_entry->d_name);
         if (fnmatch(dir_entry->d_name, ".", 0) == 0 || fnmatch(dir_entry->d_name, "..", 0) == 0) {
