@@ -2,22 +2,36 @@
 #include <dirent.h>
 
 int print_entry(char* pattern, char* pathname, bool verbose) {
-    if (pattern == NULL) {
-        struct stat path_stat;
-        if (stat(pathname, &path_stat) == -1) {
-            return -1;
-        }
-        if (verbose) {
-            printf("%d  %d %s %d %s %s %d ");
-        }
-        else {
-            printf("%s\n", pathname);
+ 
+    
+
+    struct stat* path_stat;
+    if (stat(pathname, path_stat) == -1) {
+        return -1;
+    }
+    if (verbose) {
+        if (S_ISLNK(path_stat->st_mode)) { // check for symlink
+            char link[256];
+            int len = readlink(pathname, link, sizeof(link) - 1);
+            if (len != -1) {
+                snprintf(pathname, len, "%s -> %s", pathname, link);
+            }
         }
 
+        char time[64];
+        struct tm *local = localtime(&(path_stat->st_mtime));
+        strftime(time, sizeof(time), "%b %d %H:%M", local);
+        struct passwd* user; 
+        struct group* group; 
+        user = getpwuid(path_stat->st_uid); 
+        if (user != 0) return -1;
+        group = getgrgid(path_stat->st_gid); 
+        if (group != 0) return -1;
+
+        printf("%d  %d %s %d %s %s %d %s %s ", path_stat->st_ino, path_stat->st_blocks, path_stat->st_mode, path_stat->st_nlink, user->pw_name, group->gr_name, path_stat->st_size, time, pathname);
     }
     else {
-        // iterate through directory entries and match against pattern
-
+        printf("%s\n", pathname);
     }
 
 }
@@ -26,7 +40,7 @@ int print_entry(char* pattern, char* pathname, bool verbose) {
 int traverse(char* pattern, char* path, bool verbose, bool x) {
     DIR* directory = opendir(path);
     if (directory == NULL) {
-        closedir(path);
+        closedir(directory);
         return -1;
     }
     struct dirent* dir_entry;
