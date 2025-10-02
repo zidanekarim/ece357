@@ -44,6 +44,7 @@ int print_entry(char* pattern, char* pathname, bool verbose) {
     else {
         printf("%s\n", pathname);
     }
+    return 0;
 
 }
 
@@ -62,8 +63,8 @@ int traverse(char* pattern, char* path, bool verbose, bool x, dev_t start_dev) {
             closedir(directory);
             return -1;
         }
-        dev_t original_dev = path_stat.st_dev;
-        if (original_dev != path_stat.st_dev) {
+        dev_t current = path_stat.st_dev;
+        if (start_dev != current) {
             closedir(directory);
             return 0; // if device IDs dont match, we skip this directory
         }
@@ -80,7 +81,7 @@ int traverse(char* pattern, char* path, bool verbose, bool x, dev_t start_dev) {
         }
         else if (dir_entry->d_type==DT_DIR) {
             // recursively call traverse on this directory
-            int result = traverse(pattern, new_path, verbose, x);
+            int result = traverse(pattern, new_path, verbose, x, start_dev);
             if (result == -1) {
                 return -1;
             }
