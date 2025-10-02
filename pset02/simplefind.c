@@ -2,33 +2,44 @@
 #include <dirent.h>
 
 int print_entry(char* pattern, char* pathname, bool verbose) {
- 
+    // checking for pattern match 
+    if (pattern != NULL && fnmatch(pattern, pathname, 0) != 0) {
+        return 0; 
+    }
     
 
-    struct stat* path_stat;
-    if (stat(pathname, path_stat) == -1) {
+    struct stat path_stat;
+    if (stat(pathname, &path_stat) == -1) {
         return -1;
     }
     if (verbose) {
-        if (S_ISLNK(path_stat->st_mode)) { // check for symlink
-            char link[256];
+        if (S_ISLNK(path_stat.st_mode)) { // check for symlink
+            char link[1024];
             int len = readlink(pathname, link, sizeof(link) - 1);
+            char temp[1024];
+
             if (len != -1) {
-                snprintf(pathname, len, "%s -> %s", pathname, link);
+                int n = snprintf(temp, sizeof(temp), "%s -> %s", pathname, link);
+                if (n != -1) {
+                    n = strncpy(pathname, temp, 1023);
+                    if (n == NULL) return -1;
+                }
+                else return -1;
+                pathname[1023] = '\0';
             }
         }
 
         char time[64];
-        struct tm *local = localtime(&(path_stat->st_mtime));
+        struct tm *local = localtime(&(path_stat.st_mtime));
         strftime(time, sizeof(time), "%b %d %H:%M", local);
         struct passwd* user; 
         struct group* group; 
-        user = getpwuid(path_stat->st_uid); 
-        if (user != 0) return -1;
-        group = getgrgid(path_stat->st_gid); 
-        if (group != 0) return -1;
+        user = getpwuid(path_stat.st_uid); 
+        if (user == NULL) return -1;
+        group = getgrgid(path_stat.st_gid); 
+        if (group == NULL) return -1;
 
-        printf("%d  %d %s %d %s %s %d %s %s ", path_stat->st_ino, path_stat->st_blocks, path_stat->st_mode, path_stat->st_nlink, user->pw_name, group->gr_name, path_stat->st_size, time, pathname);
+        printf("%d  %d %s %d %s %s %d %s %s ", path_stat.st_ino, path_stat.st_blocks, path_stat.st_mode, path_stat.st_nlink, user->pw_name, group->gr_name, path_stat.st_size, time, pathname);
     }
     else {
         printf("%s\n", pathname);
@@ -37,16 +48,15 @@ int print_entry(char* pattern, char* pathname, bool verbose) {
 }
 
 
-int traverse(char* pattern, char* path, bool verbose, bool x) {
+int traverse(char* pattern, char* path, bool verbose, bool x, dev_t start_dev) {
     DIR* directory = opendir(path);
     if (directory == NULL) {
-        closedir(directory);
         return -1;
     }
     struct dirent* dir_entry;
     //struct entry* current;
     //struct entry** results = NULL;
-    if (x==true) { // if xdev true, we need to check device ID of current directory
+    if (x==true) { // if xdev true, check device ID of current directory
         struct stat path_stat;
         if (stat(path, &path_stat) == -1) {
             closedir(directory);
@@ -55,7 +65,7 @@ int traverse(char* pattern, char* path, bool verbose, bool x) {
         dev_t original_dev = path_stat.st_dev;
         if (original_dev != path_stat.st_dev) {
             closedir(directory);
-            return 0; // if device IDs don't match, we skip this directory
+            return 0; // if device IDs dont match, we skip this directory
         }
 
     }
@@ -63,9 +73,9 @@ int traverse(char* pattern, char* path, bool verbose, bool x) {
 
     // now we use readdir to read contents of directory
     while ((dir_entry = readdir(directory)) != NULL) { // once directory is empty (meaning we've looked through it, we can return from the function
-        char new_path[256];
+        char new_path[1024];
         snprintf(new_path, sizeof(new_path), "%s/%s", path, dir_entry->d_name);
-        if (fnmatch(dir_entry->d_name, ".", 0) == 0 || fnmatch(dir_entry->d_name, "..", 0) == 0) {
+        if (strcmp(dir_entry->d_name, ".") == 0 || strcmp(dir_entry->d_name, "..") == 0) {
             continue; 
         }
         else if (dir_entry->d_type==DT_DIR) {
@@ -85,7 +95,7 @@ int traverse(char* pattern, char* path, bool verbose, bool x) {
             if (print_result == -1) {
                 return -1;
             }
-        }
-        return 0;
+        }   
     }
+    return 0;
 }

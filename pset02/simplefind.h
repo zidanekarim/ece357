@@ -12,6 +12,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+#include <string.h>
 
 
 int print_entry(char* pattern, char* path, bool verbose);
