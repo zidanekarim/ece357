@@ -41,29 +41,43 @@ int print_entry(char *pattern, char *pathname, bool verbose)
             return -1;
         }
 
-        if (S_ISLNK(path_stat.st_mode))
-        { // check for symlink
-            char link[1024];
-            int len = readlink(pathname, link, sizeof(link) - 1);
-
-            char temp[1024];
-
-            if (len != -1)
-            {
-                int n = snprintf(temp, sizeof(temp), "%s -> %s", pathname, link);
-                if (n != -1)
-                {
-                    n = strncpy(pathname, temp, 1023);
-                    if (n == NULL)
-                        return -1;
-                }
-                else
-                    return -1;
-                pathname[1023] = '\0';
+        char display_path[1024];
+        if (S_ISLNK(path_stat.st_mode)) {
+            int len = readlink(pathname, display_path, sizeof(display_path)-1);
+            if (len != -1) {
+                display_path[len] = '\0';
+                snprintf(display_path, sizeof(display_path), "%s -> %s", pathname, display_path);
+            } else {
+                strncpy(display_path, pathname, sizeof(display_path));
             }
+        } else {
+            strncpy(display_path, pathname, sizeof(display_path));
         }
 
-        printf("%d  %d %s %d %s %s %d %s %s\n", path_stat.st_ino, path_stat.st_blocks, "path_stat.st_mode", path_stat.st_nlink, user->pw_name, group->gr_name, path_stat.st_size, time, pathname);
+        // mode parsing
+        char* modes = "rwxrwxrwx";
+        char mode_str[11];
+        switch (path_stat.st_mode & S_IFMT) { // S_IFMT is a bitmask to get file type
+            case S_IFREG: mode_str[0] = '-'; break;
+            case S_IFDIR: mode_str[0] = 'd'; break;
+            case S_IFLNK: mode_str[0] = 'l'; break;
+            case S_IFCHR: mode_str[0] = 'c'; break;
+            case S_IFBLK: mode_str[0] = 'b'; break;
+            case S_IFSOCK: mode_str[0] = 's'; break;
+            case S_IFIFO: mode_str[0] = 'p'; break;
+            default: mode_str[0] = '?'; break;
+        }
+        for (int i = 1; i < 10; i++) { // first char is file type, next 8 are permissions
+            if (path_stat.st_mode & (1 << (9 - i))) {
+                mode_str[i] = modes[i - 1];
+            } else {
+                mode_str[i] = '-';
+            }
+        }
+        mode_str[10] = '\0';
+
+
+        printf("%d  %d %s %d %s %s %d %s %s\n", path_stat.st_ino, path_stat.st_blocks, mode_str, path_stat.st_nlink, user->pw_name, group->gr_name, path_stat.st_size, time, display_path);
     }
     else
     {
@@ -77,6 +91,7 @@ int traverse(char *pattern, char *path, bool verbose, bool x, dev_t start_dev)
     DIR *directory = opendir(path);
     if (directory == NULL)
     {
+        errno = EACCES; // permission denied
         return -1;
     }
     struct dirent *dir_entry;
