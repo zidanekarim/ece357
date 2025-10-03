@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     char* pattern = NULL;
     char* path = ".";
     char c;
-    while ((c = getopt (argc, argv, "l:x:n:")) != -1) {
+    while ((c = getopt (argc, argv, "lxn:")) != -1) {
         switch (c) {
             case 'l':
                 verbose = true;
