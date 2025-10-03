@@ -1,6 +1,11 @@
 #include "simplefind.h"
 #include <stdio.h>
+#include <getopt.h>
 
+/* 
+Note. There is noticeably less error printing in this assignment compared to a usual assignment. This is because, aside from the initial path argument, errors are not considered fatal. For example, if a directory cannot be opened due to permissions, we simply skip it and continue. 
+This is similar to the behavior of the real 'find' command.
+*/
 
 int main(int argc, char** argv) {
     // getopt
@@ -19,10 +24,16 @@ int main(int argc, char** argv) {
                 break;
             case 'n':
                 pattern = optarg;
+                if (pattern == NULL || strlen(pattern) == 0) {
+                    fprintf(stderr, "Option -n requires an argument\n");
+                    fprintf(stderr, "Usage: %s [-l] [-x] [-n pattern] [path]\n", argv[0]);
+                    return -1;
+                }
                 break;
             default:
-                fprintf(stdout, "No additional arguments specified\n");
-                break;
+                fprintf(stderr, "Unknown option -%c\n", optopt);
+                fprintf(stderr, "Usage: %s [-l] [-x] [-n pattern] [path]\n", argv[0]);
+                return -1;
         }
     }
     if (optind < argc) { // this means there is a path argument

@@ -13,6 +13,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+#include <libgen.h>
 #include <errno.h>
 #include <string.h>
 

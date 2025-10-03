@@ -4,7 +4,7 @@
 int print_entry(char *pattern, char *pathname, bool verbose)
 {
     // checking for pattern match
-    if (pattern != NULL && fnmatch(pattern, pathname, 0) != 0)
+    if (pattern != NULL && fnmatch(pattern, basename(pathname), 0) != 0) // basename function is AWESOME
     {
         return 0;
     }
@@ -53,7 +53,7 @@ int print_entry(char *pattern, char *pathname, bool verbose)
         } else {
             strncpy(display_path, pathname, sizeof(display_path));
         }
-
+        display_path[sizeof(display_path)-1] = '\0';
         // mode parsing
         char* modes = "rwxrwxrwx";
         char mode_str[11];
@@ -77,8 +77,8 @@ int print_entry(char *pattern, char *pathname, bool verbose)
         mode_str[10] = '\0';
 
 
-        printf("%d  %d %s %d %s %s %d %s %s\n", path_stat.st_ino, path_stat.st_blocks, mode_str, path_stat.st_nlink, user->pw_name, group->gr_name, path_stat.st_size, time, display_path);
-    }
+        printf("%d  %d %s %d %s %s %d %s %s\n", path_stat.st_ino, path_stat.st_blocks*2, mode_str, path_stat.st_nlink, user->pw_name, group->gr_name, path_stat.st_size, time, display_path);
+    } // note that st_blocks is in 512-byte blocks, and find usually shows in 1K blocks, so we multiply by 2
     else
     {
         printf("%s\n", pathname);
@@ -91,8 +91,7 @@ int traverse(char *pattern, char *path, bool verbose, bool x, dev_t start_dev)
     DIR *directory = opendir(path);
     if (directory == NULL)
     {
-        errno = EACCES; // permission denied
-        return -1;
+        return 0; // if we can't open directory, we skip it. this is not an error so we return 0
     }
     struct dirent *dir_entry;
     if (x == true)
@@ -115,7 +114,8 @@ int traverse(char *pattern, char *path, bool verbose, bool x, dev_t start_dev)
     while ((dir_entry = readdir(directory)) != NULL)
     { // once directory is empty (meaning we've looked through it, we can return from the function
         char new_path[1024];
-        snprintf(new_path, sizeof(new_path), "%s/%s", path, dir_entry->d_name);
+        if (strcmp(path, "/") == 0) snprintf(new_path, sizeof(new_path), "/%s", dir_entry->d_name);
+        else snprintf(new_path, sizeof(new_path), "%s/%s", path, dir_entry->d_name);
         if (strcmp(dir_entry->d_name, ".") == 0 || strcmp(dir_entry->d_name, "..") == 0)
         {
             continue;
@@ -126,13 +126,13 @@ int traverse(char *pattern, char *path, bool verbose, bool x, dev_t start_dev)
             int result = traverse(pattern, new_path, verbose, x, start_dev);
             if (result == -1)
             {
-                return -1;
+                continue;
             }
 
             int print_result = print_entry(pattern, new_path, verbose);
             if (print_result == -1)
             {
-                return -1;
+                return -1; // -1 in print entry is an actual error since there 
             }
         }
         else
