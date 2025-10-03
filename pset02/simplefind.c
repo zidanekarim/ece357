@@ -31,13 +31,24 @@ int print_entry(char* pattern, char* pathname, bool verbose) {
 
         char time[64];
         struct tm *local = localtime(&(path_stat.st_mtime));
+        if (local == NULL) {
+            errno = EINVAL; // time conversion error
+            return -1;
+        } 
+
         strftime(time, sizeof(time), "%b %d %H:%M", local);
         struct passwd* user; 
         struct group* group; 
         user = getpwuid(path_stat.st_uid); 
-        if (user == NULL) return -1;
+        if (user == NULL) {
+            errno = EINVAL; // user ID conversion error
+            return -1; 
+        }
         group = getgrgid(path_stat.st_gid); 
-        if (group == NULL) return -1;
+        if (group == NULL){
+            errno = EINVAL; // same as before
+            return -1;
+        }
 
         printf("%d  %d %s %d %s %s %d %s %s ", path_stat.st_ino, path_stat.st_blocks, path_stat.st_mode, path_stat.st_nlink, user->pw_name, group->gr_name, path_stat.st_size, time, pathname);
     }
@@ -55,8 +66,6 @@ int traverse(char* pattern, char* path, bool verbose, bool x, dev_t start_dev) {
         return -1;
     }
     struct dirent* dir_entry;
-    //struct entry* current;
-    //struct entry** results = NULL;
     if (x==true) { // if xdev true, check device ID of current directory
         struct stat path_stat;
         if (stat(path, &path_stat) == -1) {
@@ -66,7 +75,7 @@ int traverse(char* pattern, char* path, bool verbose, bool x, dev_t start_dev) {
         dev_t current = path_stat.st_dev;
         if (start_dev != current) {
             closedir(directory);
-            return 0; // if device IDs dont match, we skip this directory
+            return 0; // if device IDs dont match, we skip this directory. this is not an error so we return 0
         }
 
     }
