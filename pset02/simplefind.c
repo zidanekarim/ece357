@@ -10,7 +10,7 @@ int print_entry(char *pattern, char *pathname, bool verbose)
     }
 
     struct stat path_stat;
-    if (stat(pathname, &path_stat) == -1)
+    if (lstat(pathname, &path_stat) == -1)
     {
         return -1;
     }
@@ -40,13 +40,13 @@ int print_entry(char *pattern, char *pathname, bool verbose)
             errno = EINVAL; // same as before
             return -1;
         }
-
         char display_path[1024];
+        char target[1024];
         if (S_ISLNK(path_stat.st_mode)) {
-            int len = readlink(pathname, display_path, sizeof(display_path)-1);
+            int len = readlink(pathname, target, sizeof(target)-1);
             if (len != -1) {
-                display_path[len] = '\0';
-                snprintf(display_path, sizeof(display_path), "%s -> %s", pathname, display_path);
+                target[len] = '\0';
+                snprintf(display_path, sizeof(display_path), "%s -> %s", pathname, target);
             } else {
                 strncpy(display_path, pathname, sizeof(display_path));
             }
@@ -120,7 +120,7 @@ int traverse(char *pattern, char *path, bool verbose, bool x, dev_t start_dev)
         {
             continue;
         }
-        else if (dir_entry->d_type == DT_DIR)
+        else if (dir_entry->d_type == DT_DIR) // on my end, code compiles but always a squiggly underline here. not sure why since its valid and header included. maybe false err
         {
             // recursively call traverse on this directory
             int result = traverse(pattern, new_path, verbose, x, start_dev);
@@ -132,7 +132,7 @@ int traverse(char *pattern, char *path, bool verbose, bool x, dev_t start_dev)
             int print_result = print_entry(pattern, new_path, verbose);
             if (print_result == -1)
             {
-                return -1; // -1 in print entry is an actual error since there 
+                return -1; // -1 in print entry is an actual error
             }
         }
         else
@@ -140,6 +140,7 @@ int traverse(char *pattern, char *path, bool verbose, bool x, dev_t start_dev)
             int print_result = print_entry(pattern, new_path, verbose);
             if (print_result == -1)
             {
+                errno = EIO; // io error (i think?)
                 return -1;
             }
         }
