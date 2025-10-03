@@ -1,0 +1,9 @@
+272340  464 -rw-r--r-- 1 zidane.karim zidane.karim 117428 Sep 27 12:29 ./ps2.pdf
+331151  16 -rw-r--r-- 1 zidane.karim zidane.karim 580 Oct 03 11:05 ./Makefile
+331155  16 -rw-r--r-- 1 zidane.karim zidane.karim 486 Oct 03 11:49 ./simplefind.h
+333187  16 -rw-r--r-- 1 zidane.karim zidane.karim 1842 Oct 03 12:05 ./app.c
+333189  32 -rw-r--r-- 1 zidane.karim zidane.karim 4962 Oct 03 12:00 ./simplefind.c
+336055  16 -rw-r--r-- 1 zidane.karim zidane.karim 3008 Oct 03 12:05 ./app.o
+336056  32 -rw-r--r-- 1 zidane.karim zidane.karim 4544 Oct 03 12:05 ./simplefind.o
+336057  64 -rwxr-xr-x 1 zidane.karim zidane.karim 13784 Oct 03 12:05 ./simplefind
+336430  0 -rw-r--r-- 1 zidane.karim zidane.karim 0 Oct 03 12:16 ./output1.txt
