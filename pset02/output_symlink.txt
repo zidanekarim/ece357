@@ -1,0 +1,16 @@
+272340  464 -rw-r--r-- 1 zidane.karim zidane.karim 117428 Sep 27 12:29 ./ps2.pdf
+331151  16 -rw-r--r-- 1 zidane.karim zidane.karim 580 Oct 03 11:05 ./Makefile
+331155  16 -rw-r--r-- 1 zidane.karim zidane.karim 486 Oct 03 11:49 ./simplefind.h
+333187  16 -rw-r--r-- 1 zidane.karim zidane.karim 1842 Oct 03 12:05 ./app.c
+333189  32 -rw-r--r-- 1 zidane.karim zidane.karim 5136 Oct 03 12:38 ./simplefind.c
+336430  16 -rw-r--r-- 1 zidane.karim zidane.karim 719 Oct 03 12:16 ./output1.txt
+336772  144 -rw-r--r-- 1 zidane.karim zidane.karim 35758 Oct 03 12:22 ./output2.txt
+336787  160 -rw-r--r-- 1 zidane.karim zidane.karim 40711 Oct 03 12:25 ./find_output2.txt
+336800  16 -rw-r--r-- 1 zidane.karim zidane.karim 159 Oct 03 12:24 ./output3.txt
+336805  16 -rw-r--r-- 1 zidane.karim zidane.karim 266 Oct 03 12:25 ./find_output3.txt
+337332  0 -rw-r--r-- 1 zidane.karim zidane.karim 0 Oct 03 12:33 ./pointy
+337335  16 lrwxrwxrwx 1 zidane.karim zidane.karim 49 Oct 03 12:33 ./symtest -> /home/zidane.karim/Documents/ece357/pset02/pointy
+337542  16 -rw-r--r-- 1 zidane.karim zidane.karim 3008 Oct 03 12:38 ./app.o
+337543  32 -rw-r--r-- 1 zidane.karim zidane.karim 4600 Oct 03 12:38 ./simplefind.o
+337544  64 -rwxr-xr-x 1 zidane.karim zidane.karim 13816 Oct 03 12:38 ./simplefind
+337550  0 -rw-r--r-- 1 zidane.karim zidane.karim 0 Oct 03 12:38 ./output_symlink.txt
