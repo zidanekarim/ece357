@@ -1,6 +1,15 @@
 #include "myshell.h"
 
 
+char* file_parser(char* input_str) { // extracts the file name from a redirection string
+    // assumes input_str starts with a redirection operator
+    char *delimiter = " \t\r\n\a";
+    char *token;
+    token = strtok(input_str, delimiter); // filename
+    return token;
+}
+
+
 int myshell_loop(void) {
     char *line = NULL;
     size_t bufsize = 0;
@@ -47,7 +56,7 @@ int myshell_loop(void) {
                 errno = EINVAL;
                 fprintf(stderr, "myshell: invalid argument to cd\n");
             } else {
-                if (chdir(args[1]) != 0) {
+                if ((last_status = chdir(args[1])) != 0) {
                     fprintf(stderr, "myshell: no such file or directory: %s\n", args[1]);
                 }
             }
@@ -72,17 +81,74 @@ int myshell_loop(void) {
         else if (strcmp(args[0], "pwd") == 0) {
             char cwd[PATH_MAX];
             if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                last_status = 0;
                 printf("%s\n", cwd);
             } else {
+                last_status = -1;
                 errno = EINVAL;
                 fprintf(stderr, "myshell: error retrieving current directory\n");
             }
+            free(args);
+            continue;
         }
-        else {
-            last_status = myshell_execute(args);
+        struct command* cmd = (struct command*) malloc(sizeof(struct command));
+        if (cmd == NULL) {
+            fprintf(stderr, "myshell: allocation error\n");
+            free(args);
+            continue;
         }
-        // run command
-        
+        cmd->args = args;
+        cmd->input_file = NULL;
+        cmd->output_file = NULL;
+        cmd->error_file = NULL;
+        cmd->append = 0;
+        cmd->error_append = 0;
+        // parsing redirections!!! (most fun part)
+        for (int i = 0; args[i] != NULL; i++) {
+            if (strcmp(args[i], "<") == 0) { // strcmp will look at first char 
+                // look for next whitespace separated token
+                cmd->input_file = file_parser(args[i+1]);
+                // remove the redirection tokens from args
+                for (int j = i; args[j-1] != NULL; j++) {
+                    args[j] = args[j+1];
+                }
+                i--; 
+                    
+            } else if (strcmp(args[i], ">") == 0) {
+                cmd->output_file = args[i+1];
+                cmd->append = 0;
+                for (int j = i; args[j-1] != NULL; j++) {
+                    args[j] = args[j+1];
+                }
+                i--; 
+            } else if (strcmp(args[i], ">>") == 0) {
+                cmd->output_file = file_parser(args[i+2]);
+                cmd->append = 1;
+                for (int j = i; args[j-1] != NULL; j++) {
+                    args[j] = args[j+1];
+                }
+                i--; 
+            } else if (strcmp(args[i], "2>") == 0) {
+                cmd->error_file = file_parser(args[i+1]);
+                for (int j = i; args[j-1] != NULL; j++) {
+                    args[j] = args[j+1];
+                }
+                i--; 
+            }
+            
+            else if (strcmp(args[i], "2>>") == 0) {
+                cmd->error_file = file_parser(args[i+2]);
+                cmd->error_append = 1;
+                for (int j = i; args[j-1] != NULL; j++) {
+                    args[j] = args[j+1];
+                }
+                i--; 
+            }
+                
+        }
+                
+        last_status = myshell_execute(cmd);
+        free(cmd);
 
         free(args);
     }
@@ -90,17 +156,70 @@ int myshell_loop(void) {
     return 0;
 }
 
-int myshell_execute(char **args) {
-    if (args[0] == NULL) {
+int myshell_execute(struct command* cmd) {
+    if (cmd->args[0] == NULL) {
         errno = EINVAL;
         return 1; 
     }
+    // redirection handling
+    int out_fd = STDOUT_FILENO;
+    int err_fd = STDERR_FILENO;
+    int in_fd = STDIN_FILENO;
+
+    if (cmd->input_file != NULL) {
+        in_fd = open(cmd->input_file, O_RDONLY);
+        if (in_fd < 0) {
+            fprintf(stderr, "myshell: cannot open input file %s\n", cmd->input_file);
+            return -1;
+        }
+    }
+    if (cmd->output_file != NULL) {
+        if (cmd->append) {
+            out_fd = open(cmd->output_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        } else {
+            out_fd = open(cmd->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        }
+        if (out_fd < 0) {
+            fprintf(stderr, "myshell: cannot open output file %s\n", cmd->output_file);
+            return -1;
+        }
+
+    }
+    if (cmd->error_file != NULL) {
+        if (cmd->error_append) {
+            err_fd = open(cmd->error_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        } else {
+            err_fd = open(cmd->error_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        }
+        if (err_fd < 0) {
+            fprintf(stderr, "myshell: cannot open error file %s\n", cmd->error_file);
+            return -1;
+        }
+        
+    }
+
 
     pid_t pid = fork();
     if (pid == 0) {
         // child 
+        if (dup2(err_fd, STDERR_FILENO) == -1) {
+            fprintf(stderr, "myshell: error in error redirection for file %s\n", cmd->error_file);
+            close(err_fd);
+            return -1;
+        }
+        if (dup2(out_fd, STDOUT_FILENO) == -1) {
+            fprintf(stderr, "myshell: error in output redirection for file %s\n", cmd->output_file);
+            close(out_fd);
+            return -1;
+        }
+        if (dup2(in_fd, STDIN_FILENO) == -1) {
+            fprintf(stderr, "myshell: error in input redirection for file %s\n", cmd->input_file);
+            close(in_fd);
+            return -1;
+        }
 
-        if (execvp(args[0], args) == -1) {
+
+        if (execvp(cmd->args[0], cmd->args) == -1) {
             fprintf(stderr, "myshell: command not found: %s\n", args[0]);
         }
         exit(EXIT_FAILURE);
@@ -114,6 +233,7 @@ int myshell_execute(char **args) {
                 fprintf(stderr, "Error waiting for child process for command %s\n", args[0]);
                 break;
             }
+            
         }
     }
     return 1;
