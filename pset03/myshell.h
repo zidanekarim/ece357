@@ -10,7 +10,10 @@
 #include <signal.h>
 #include <errno.h>
 #include <getopt.h>
+#include <limits.h>
+#include <linux/limits.h>
 
+#define ARG_MAX 2097152 // max length of args in my (zidane's) linux system, found with getconf ARG_MAX
 int myshell_loop(void);
 int myshell_execute(char **args);
 

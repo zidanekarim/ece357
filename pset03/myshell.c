@@ -9,6 +9,7 @@ int myshell_loop(void) {
     char *delimiter = " \t\r\n\a";
     char **args;
     int run = 1;
+    int last_status = 0;
 
     while (run) {
         printf("myshell> ");
@@ -26,7 +27,7 @@ int myshell_loop(void) {
         }
                                                                                                                         
 
-        args = malloc((linelen / 2 + 1) * sizeof(char*)); // Rough estimate of max args
+        args = malloc(ARG_MAX * sizeof(char*)); // Rough estimate of max args
         if (args == NULL) {
             fprintf(stderr, "myshell: allocation error\n");
             continue;
@@ -40,8 +41,48 @@ int myshell_loop(void) {
         }
         args[position] = NULL;
 
+        // builtin commands 
+        if (strcmp(args[0], "cd") == 0) {
+            if (args[1] == NULL) {
+                errno = EINVAL;
+                fprintf(stderr, "myshell: invalid argument to cd\n");
+            } else {
+                if (chdir(args[1]) != 0) {
+                    fprintf(stderr, "myshell: no such file or directory: %s\n", args[1]);
+                }
+            }
+            free(args);
+            continue;
+        } else if (strcmp(args[0], "exit") == 0) {
+            if (args[1] != NULL) {
+                free(args);
+                int status = atoi(args[1]);
+                if (status == 0 && strcmp(args[1], "0") != 0) { // atoi returns 0 on error so check if atoi failed instead of input being 0
+                    fprintf(stderr, "myshell: invalid argument to exit\n"); 
+                    continue;
+                }
+                exit(atoi(args[1]));
+            }
+            else {
+                free(args);
+                exit(last_status);
+            }
+            break;
+        }
+        else if (strcmp(args[0], "pwd") == 0) {
+            char cwd[PATH_MAX];
+            if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                printf("%s\n", cwd);
+            } else {
+                errno = EINVAL;
+                fprintf(stderr, "myshell: error retrieving current directory\n");
+            }
+        }
+        else {
+            last_status = myshell_execute(args);
+        }
         // run command
-        myshell_execute(args);
+        
 
         free(args);
     }
