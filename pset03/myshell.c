@@ -6,18 +6,18 @@ int myshell_loop(void) {
     size_t bufsize = 0;
     ssize_t linelen;
     char *token;
-    char *delim = " \t\r\n\a";
+    char *delimiter = " \t\r\n\a";
     char **args;
-    int status = 1;
+    int run = 1;
 
-    while (status) {
+    while (run) {
         printf("myshell> ");
         linelen = getline(&line, &bufsize, stdin);
         if (linelen == -1) {
             if (feof(stdin)) { // means EOF (ctrl d)
                 break; 
             } else {
-                perror("getline");
+                fprintf(stderr, "myshell: Error in reading input\n");
                 continue;
             }
         }
@@ -33,15 +33,15 @@ int myshell_loop(void) {
         }
 
         int position = 0;
-        token = strtok(line, delim);
+        token = strtok(line, delimiter);
         while (token != NULL) {
             args[position++] = token;
-            token = strtok(NULL, delim);
+            token = strtok(NULL, delimiter);
         }
         args[position] = NULL;
 
-        // Execute command
-        status = myshell_execute(args);
+        // run command
+        myshell_execute(args);
 
         free(args);
     }
