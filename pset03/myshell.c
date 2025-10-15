@@ -12,8 +12,8 @@
 
 int myshell_loop(FILE *input, bool interactive){
     char *line = NULL;
-    size_t bufsize = 0;
-    ssize_t linelen;
+    size_t bufsize = 0; // fails if not size_t
+    ssize_t linelen; 
     char *token;
     char *delimiter = " \t\r\n\a";
     char **args;
@@ -39,7 +39,7 @@ int myshell_loop(FILE *input, bool interactive){
         }
                                                                                                                         
 
-        args = malloc(ARG_MAX * sizeof(char*)); // Rough estimate of max args
+        args = malloc(ARG_MAX * sizeof(char*)); 
         if (args == NULL) {
             fprintf(stderr, "myshell: allocation error\n");
             continue;
@@ -197,9 +197,13 @@ int myshell_execute(struct command* cmd) {
         }
         
     }
-
-
+    struct timeval start_time, end_time;
+    int start_tm = gettimeofday(&start_time, NULL); // https://stackoverflow.com/questions/47215214/why-is-the-gettimeofday-timezone-wrong
+    if (start_tm == -1) {
+        fprintf(stderr, "Error in getting start time\n");
+    }
     pid_t pid = fork();
+
     if (pid == 0) {
         // child 
         if (dup2(err_fd, STDERR_FILENO) == -1) {
@@ -217,23 +221,57 @@ int myshell_execute(struct command* cmd) {
             close(in_fd);
             return -1;
         }
-
-
         if (execvp(cmd->args[0], cmd->args) == -1) {
             fprintf(stderr, "myshell: command not found: %s\n", cmd->args[0]);
+            printf("bruhruhruhru");
+            exit(EXIT_FAILURE);
+
         }
-        exit(EXIT_FAILURE);
+        printf("got bruhuhruehr\n");
+        exit(EXIT_SUCCESS);
     } else if (pid < 0) {
         fprintf(stderr, "Error in creating child process for command %s\n", cmd->args[0]);
     } else {
         // Parent process
-        int status;
-        while (waitpid(pid, &status, WUNTRACED) == -1) {
-            if (errno != EINTR) {
-                fprintf(stderr, "Error waiting for child process for command %s\n", cmd->args[0]);
+        unsigned status;
+        struct rusage usage;
+
+        while (waitpid(pid, &status, WUNTRACED) == 0) { // matthew jeong helped me with this line even though he is not my partner so shoutout to him
+            int resources = getrusage(RUSAGE_CHILDREN, &usage);
+            if (resources == -1) {
+                fprintf(stderr, "Error in getting resource usage\n");
+            }
+            printf("HELLLO!!!!\n");
+            int end_tm = gettimeofday(&end_time, NULL);
+            if (end_tm == -1) {
+                fprintf(stderr, "Error in getting end time\n");
+            }
+            time_t real_time = (end_time.tv_sec - start_time.tv_sec);
+            
+            
+            
+            if (status != 0) {
+                if (WIFSIGNALED(status)) {
+                    fprintf(stderr, "Child process %d exited with signal %d (%s)\n", pid, WTERMSIG(status), strsignal(WTERMSIG(status)));
+                    fprintf(stderr, "Real: %s User: %s Sys: %s", time_parser(real_time), time_parser(usage.ru_utime.tv_sec), time_parser(usage.ru_stime.tv_sec));
+                    break;
+                }
+                else {
+                    fprintf(stderr, "Child process %d exited with return value %d\n", pid, WEXITSTATUS(status));
+                    fprintf(stderr, "Real: %s User: %s Sys: %s", time_parser(real_time), time_parser(usage.ru_utime.tv_sec), time_parser(usage.ru_stime.tv_sec));
+                }
+            }
+            else if (errno != EINTR) {
+                fprintf(stderr, "Error in waiting for child process %d\n", pid);
                 break;
             }
+            else {
+                fprintf(stderr, "Child process %d exited normally\n", pid);
+                fprintf(stderr, "Real: %s User: %s Sys: %s", time_parser(real_time), time_parser(usage.ru_utime.tv_sec), time_parser(usage.ru_stime.tv_sec));
+            }
+
+            
         }
     }
-    return 1;
+    return 0;
 }
