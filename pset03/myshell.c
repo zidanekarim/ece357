@@ -1,15 +1,12 @@
 #include "myshell.h"
 
 
-char* file_parser(char* input_str) { // extracts the file name from a redirection string
-    // assumes input_str starts with a redirection operator
-    char *delimiter = " \t\r\n\a";
-    printf("Parsing file from string: %s\n", input_str);
-    char *token;
-    token = strtok(input_str, delimiter); // filename
-    return token;
-}
+char* time_parser(time_t time) {
+    static char buffer[50];
+    snprintf(buffer, sizeof(buffer), "%lds", time);
+    return buffer;
 
+}
 
 int myshell_loop(void) {
     char *line = NULL;
@@ -196,9 +193,13 @@ int myshell_execute(struct command* cmd) {
         }
         
     }
-
-
+    struct timeval start_time, end_time;
+    int start_tm = gettimeofday(&start_time, NULL); // https://stackoverflow.com/questions/47215214/why-is-the-gettimeofday-timezone-wrong
+    if (start_tm == -1) {
+        fprintf(stderr, "Error in getting start time\n");
+    }
     pid_t pid = fork();
+
     if (pid == 0) {
         // child 
         if (dup2(err_fd, STDERR_FILENO) == -1) {
@@ -226,13 +227,44 @@ int myshell_execute(struct command* cmd) {
         fprintf(stderr, "Error in creating child process for command %s\n", cmd->args[0]);
     } else {
         // Parent process
-        int status;
+        unsigned status;
+        struct rusage usage;
+        int resources = getrusage(RUSAGE_CHILDREN, &usage);
+        if (resources == -1) {
+            fprintf(stderr, "Error in getting resource usage\n");
+        }
         while (waitpid(pid, &status, WUNTRACED) == -1) {
-            if (errno != EINTR) {
-                fprintf(stderr, "Error waiting for child process for command %s\n", cmd->args[0]);
+            printf("HELLLO!!!!\n");
+            int end_tm = gettimeofday(&end_time, NULL);
+            if (end_tm == -1) {
+                fprintf(stderr, "Error in getting end time\n");
+            }
+            time_t real_time = (end_time.tv_sec - start_time.tv_sec);
+            
+            
+            
+            if (status != 0) {
+                if (WIFSIGNALED(status)) {
+                    fprintf(stderr, "Child process %d exited with signal %d (%s)\n", pid, WTERMSIG(status), strsignal(WTERMSIG(status)));
+                    fprintf(stderr, "Real: %s User: %s Sys: %s", time_parser(real_time), time_parser(usage.ru_utime.tv_sec), time_parser(usage.ru_stime.tv_sec));
+                    break;
+                }
+                else {
+                    fprintf(stderr, "Child process %d exited with return value %d\n", pid, WEXITSTATUS(status));
+                    fprintf(stderr, "Real: %s User: %s Sys: %s", time_parser(real_time), time_parser(usage.ru_utime.tv_sec), time_parser(usage.ru_stime.tv_sec));
+                }
+            }
+            else if (errno != EINTR) {
+                fprintf(stderr, "Error in waiting for child process %d\n", pid);
                 break;
             }
+            else {
+                fprintf(stderr, "Child process %d exited normally\n", pid);
+                fprintf(stderr, "Real: %s User: %s Sys: %s", time_parser(real_time), time_parser(usage.ru_utime.tv_sec), time_parser(usage.ru_stime.tv_sec));
+            }
+
+            
         }
     }
-    return 1;
+    return 0;
 }

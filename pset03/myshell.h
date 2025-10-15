@@ -12,6 +12,13 @@
 #include <getopt.h>
 #include <limits.h>
 #include <linux/limits.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+
+
+
 struct command {
     char **args;
     char* input_file;

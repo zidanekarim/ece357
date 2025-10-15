@@ -1,9 +1,0 @@
-app.c
-app.o
-ece357ps3.pdf
-Makefile
-myshell
-myshell.c
-myshell.h
-myshell.o
-out.txt
