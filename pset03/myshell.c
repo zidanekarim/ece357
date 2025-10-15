@@ -2,16 +2,15 @@
 
 
 char* time_parser(time_t time) {
-    static char buffer[50];
+    char buffer[50];
     snprintf(buffer, sizeof(buffer), "%lds", time);
     return buffer;
-
 }
 
 int myshell_loop(void) {
     char *line = NULL;
-    size_t bufsize = 0;
-    ssize_t linelen;
+    size_t bufsize = 0; // fails if not size_t
+    ssize_t linelen; 
     char *token;
     char *delimiter = " \t\r\n\a";
     char **args;
@@ -20,7 +19,7 @@ int myshell_loop(void) {
 
     while (run) {
         printf("myshell: ");
-        linelen = getline(&line, &bufsize, stdin);
+        linelen = getline(&line, &bufsize, stdin); // better for unknown length input since args can be long
         if (linelen == -1) {
             if (feof(stdin)) { // means EOF (ctrl d)
                 break; 
@@ -34,7 +33,7 @@ int myshell_loop(void) {
         }
                                                                                                                         
 
-        args = malloc(ARG_MAX * sizeof(char*)); // Rough estimate of max args
+        args = malloc(ARG_MAX * sizeof(char*)); 
         if (args == NULL) {
             fprintf(stderr, "myshell: allocation error\n");
             continue;
@@ -217,23 +216,26 @@ int myshell_execute(struct command* cmd) {
             close(in_fd);
             return -1;
         }
-
-
         if (execvp(cmd->args[0], cmd->args) == -1) {
             fprintf(stderr, "myshell: command not found: %s\n", cmd->args[0]);
+            printf("bruhruhruhru");
+            exit(EXIT_FAILURE);
+
         }
-        exit(EXIT_FAILURE);
+        printf("got bruhuhruehr\n");
+        exit(EXIT_SUCCESS);
     } else if (pid < 0) {
         fprintf(stderr, "Error in creating child process for command %s\n", cmd->args[0]);
     } else {
         // Parent process
         unsigned status;
         struct rusage usage;
-        int resources = getrusage(RUSAGE_CHILDREN, &usage);
-        if (resources == -1) {
-            fprintf(stderr, "Error in getting resource usage\n");
-        }
-        while (waitpid(pid, &status, WUNTRACED) == -1) {
+
+        while (waitpid(pid, &status, WUNTRACED) == 0) { // matthew jeong helped me with this line even though he is not my partner so shoutout to him
+            int resources = getrusage(RUSAGE_CHILDREN, &usage);
+            if (resources == -1) {
+                fprintf(stderr, "Error in getting resource usage\n");
+            }
             printf("HELLLO!!!!\n");
             int end_tm = gettimeofday(&end_time, NULL);
             if (end_tm == -1) {
