@@ -35,9 +35,8 @@ extern bool interactive;
 int myshell_loop(FILE *input, bool interactive);
 int myshell_execute(struct command* cmd);
 
-char* file_parser(char* input_str);
-
-
+float time_parser(struct timeval time);
+float time_parser2(struct timeval time1, struct timeval time2);
 
 
 #endif

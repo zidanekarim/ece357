@@ -1,96 +1,118 @@
 #include "myshell.h"
 
 
-// char* file_parser(char* input_str) { // extracts the file name from a redirection string
-//     // assumes input_str starts with a redirection operator
-//     char *delimiter = " \t\r\n\a";
-//     printf("Parsing file from string: %s\n", input_str);
-//     char *token;
-//     token = strtok(input_str, delimiter); // filename
-//     return token;
-// }
+int exit_status; // make it global
 
-int exit_status; //make it global
+float time_parser(struct timeval time) {
+    printf("time: %ld seconds and %ld microseconds\n", time.tv_sec, time.tv_usec);
+    return (float)(time.tv_sec + time.tv_usec / 1000000);
+}
 
+float time_parser2(struct timeval time1, struct timeval time2) {
+    return (float)(time2.tv_sec - time1.tv_sec + (time2.tv_usec - time1.tv_usec) / 1000000);
+}
 
-int myshell_loop(FILE *input, bool interactive){
+int myshell_loop(FILE *input, bool interactive)
+{
     char *line = NULL;
     size_t bufsize = 0; // fails if not size_t
-    ssize_t linelen; 
+    ssize_t linelen;
     char *token;
     char *delimiter = " \t\r\n\a";
     char **args;
     int run = 1;
     int last_status = 0;
 
-    while(run){
-        if (interactive){
+    while (run)
+    {
+        if (interactive)
+        {
             printf("myshell: ");
         }
 
         linelen = getline(&line, &bufsize, input);
-        if (linelen == -1) {
-            if (feof(input)) { // means EOF (ctrl d)
-                break; 
-            } else {
+        if (linelen == -1)
+        {
+            if (feof(input))
+            { // means EOF (ctrl d)
+                break;
+            }
+            else
+            {
                 fprintf(stderr, "myshell: Error in reading input\n");
                 continue;
             }
         }
-        else if (line[0] == '#') {
+        else if (line[0] == '#')
+        {
             continue; // ignore comments
         }
-                                                                                                                        
 
-        args = malloc(ARG_MAX * sizeof(char*)); 
-        if (args == NULL) {
+        args = malloc(ARG_MAX * sizeof(char *));
+        if (args == NULL)
+        {
             fprintf(stderr, "myshell: allocation error\n");
             continue;
         }
 
         int position = 0;
         token = strtok(line, delimiter);
-        while (token != NULL) {
+        while (token != NULL)
+        {
             args[position++] = token;
             token = strtok(NULL, delimiter);
         }
         args[position] = NULL;
 
-        // builtin commands 
-        if (strcmp(args[0], "cd") == 0) {
-            if (args[1] == NULL) {
+        // builtin commands
+        if (strcmp(args[0], "cd") == 0)
+        {
+            if (args[1] == NULL)
+            {
                 errno = EINVAL;
                 fprintf(stderr, "myshell: invalid argument to cd\n");
-            } else {
-                if ((last_status = chdir(args[1])) != 0) {
+            }
+            else
+            {
+                if ((last_status = chdir(args[1])) != 0)
+                {
                     fprintf(stderr, "myshell: no such file or directory: %s\n", args[1]);
                 }
             }
             free(args);
             continue;
-        } else if (strcmp(args[0], "exit") == 0) {
-            if (args[1] != NULL) {
-                char* arg1 = args[1];
+        }
+        else if (strcmp(args[0], "exit") == 0)
+        {
+            if (args[1] != NULL)
+            {
+                char *arg1 = args[1];
                 free(args);
                 int status = atoi(arg1);
-                if (status == 0 && strcmp(arg1, "0") != 0) { // atoi returns 0 on error so check if atoi failed instead of input being 0
-                    fprintf(stderr, "myshell: invalid argument to exit\n"); 
+                if (status == 0 && strcmp(arg1, "0") != 0)
+                { // atoi returns 0 on error so check if atoi failed instead of input being 0
+                    fprintf(stderr, "myshell: invalid argument to exit\n");
                     continue;
                 }
                 exit(status);
             }
-            else {
+            else
+            {
                 free(args);
                 exit(last_status);
             }
             break;
         }
-        else if (strcmp(args[0], "pwd") == 0) {
+        else if (strcmp(args[0], "pwd") == 0)
+        {
             char cwd[PATH_MAX];
-            if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            if (getcwd(cwd, sizeof(cwd)) != NULL)
+            {
                 last_status = 0;
                 printf("%s\n", cwd);
-            } else {
+            }
+            else
+            {
                 last_status = -1;
                 errno = EINVAL;
                 fprintf(stderr, "myshell: error retrieving current directory\n");
@@ -100,12 +122,14 @@ int myshell_loop(FILE *input, bool interactive){
         }
 
         // EC part (a) - need to incorporate error checking
-        else if ((strcmp(args[0], "echo") == 0) && (args[1] != NULL) && (strcmp(args[1], "$?"))){
-                printf("%d", exit_status);
+        else if ((strcmp(args[0], "echo") == 0) && (args[1] != NULL) && (strcmp(args[1], "$?")))
+        {
+            printf("%d", exit_status);
         }
 
-        struct command* cmd = (struct command*) malloc(sizeof(struct command));
-        if (cmd == NULL) {
+        struct command *cmd = (struct command *)malloc(sizeof(struct command));
+        if (cmd == NULL)
+        {
             fprintf(stderr, "myshell: allocation error\n");
             free(args);
             continue;
@@ -116,44 +140,53 @@ int myshell_loop(FILE *input, bool interactive){
         cmd->error_file = NULL;
         cmd->append = 0;
         cmd->error_append = 0;
-        
-        // parsing redirections!!! (most fun part)
-        for (int i = 0; args[i] != NULL; i++) {
-            char* argument = args[i];
-            char *filename = strtok(argument, "2<>"); 
-           
-            if (!filename) continue;
 
-            if (argument[0] == '<') {
+        // parsing redirections!!! (most fun part)
+        for (int i = 0; args[i] != NULL; i++)
+        {
+            char *argument = args[i];
+            char *filename = strtok(argument, "2<>");
+
+            if (!filename)
+                continue;
+
+            if (argument[0] == '<')
+            {
                 cmd->input_file = filename;
             }
-            else if (argument[0] == '>' && argument[1] != '>') {
+            else if (argument[0] == '>' && argument[1] != '>')
+            {
                 cmd->output_file = filename;
                 cmd->append = 0; // for flags
             }
-            else if (argument[0] == '>' && argument[1] == '>') {
+            else if (argument[0] == '>' && argument[1] == '>')
+            {
                 cmd->output_file = filename;
                 cmd->append = 1;
             }
-            else if (argument[0] == '2' && argument[1] == '>' && argument[2] != '>') {
+            else if (argument[0] == '2' && argument[1] == '>' && argument[2] != '>')
+            {
                 cmd->error_file = filename;
                 cmd->error_append = 0;
             }
-            else if (argument[0] == '2' && argument[1] == '>' && argument[2] == '>') {
+            else if (argument[0] == '2' && argument[1] == '>' && argument[2] == '>')
+            {
                 cmd->error_file = filename;
                 cmd->error_append = 1;
-            } else {
-                continue; 
+            }
+            else
+            {
+                continue;
             }
 
             // skipping over these args in the args array because exec doesnt care
-            for (int j = i; args[j] != NULL; j++) {
+            for (int j = i; args[j] != NULL; j++)
+            {
                 args[j] = args[j + 1];
             }
             i--;
         }
 
-                
         last_status = myshell_execute(cmd);
         free(cmd);
 
@@ -163,127 +196,137 @@ int myshell_loop(FILE *input, bool interactive){
     return 0;
 }
 
-int myshell_execute(struct command* cmd) {
-    if (cmd->args[0] == NULL) {
+int myshell_execute(struct command *cmd)
+{
+    if (cmd->args[0] == NULL)
+    {
         errno = EINVAL;
-        return 1; 
+        return 1;
     }
     // redirection handling
     int out_fd = STDOUT_FILENO;
     int err_fd = STDERR_FILENO;
     int in_fd = STDIN_FILENO;
 
-    if (cmd->input_file != NULL) {
+    if (cmd->input_file != NULL)
+    {
         // close STDIN_FILENO;
 
         in_fd = open(cmd->input_file, O_RDONLY);
-        if (in_fd < 0) {
+        if (in_fd < 0)
+        {
             fprintf(stderr, "myshell: cannot open input file %s\n", cmd->input_file);
             return -1;
         }
     }
-    if (cmd->output_file != NULL) {
-        if (cmd->append) {
+    if (cmd->output_file != NULL)
+    {
+        if (cmd->append)
+        {
             out_fd = open(cmd->output_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
-        } else {
+        }
+        else
+        {
             out_fd = open(cmd->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
         }
-        if (out_fd < 0) {
+        if (out_fd < 0)
+        {
             fprintf(stderr, "myshell: cannot open output file %s\n", cmd->output_file);
             return -1;
         }
-
     }
-    if (cmd->error_file != NULL) {
-        if (cmd->error_append) {
+    if (cmd->error_file != NULL)
+    {
+        if (cmd->error_append)
+        {
             err_fd = open(cmd->error_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
-        } else {
+        }
+        else
+        {
             err_fd = open(cmd->error_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
         }
-        if (err_fd < 0) {
+        if (err_fd < 0)
+        {
             fprintf(stderr, "myshell: cannot open error file %s\n", cmd->error_file);
             return -1;
         }
-        
     }
     struct timeval start_time, end_time;
     int start_tm = gettimeofday(&start_time, NULL); // https://stackoverflow.com/questions/47215214/why-is-the-gettimeofday-timezone-wrong
-    if (start_tm == -1) {
+    if (start_tm == -1)
+    {
         fprintf(stderr, "Error in getting start time\n");
     }
     pid_t pid = fork();
 
-    if (pid == 0) {
-        // child 
-        if (dup2(err_fd, STDERR_FILENO) == -1) {
+    if (pid == 0)
+    {
+        // child
+        if (dup2(err_fd, STDERR_FILENO) == -1)
+        {
             fprintf(stderr, "myshell: error in error redirection for file %s\n", cmd->error_file);
             close(err_fd);
-            return -1;
+            _exit(EXIT_FAILURE);
         }
-        if (dup2(out_fd, STDOUT_FILENO) == -1) {
+        if (dup2(out_fd, STDOUT_FILENO) == -1)
+        {
             fprintf(stderr, "myshell: error in output redirection for file %s\n", cmd->output_file);
             close(out_fd);
-            return -1;
+            _exit(EXIT_FAILURE);
         }
-        if (dup2(in_fd, STDIN_FILENO) == -1) {
+        if (dup2(in_fd, STDIN_FILENO) == -1)
+        {
             fprintf(stderr, "myshell: error in input redirection for file %s\n", cmd->input_file);
             close(in_fd);
-            return -1;
+            _exit(EXIT_FAILURE);
         }
-        if (execvp(cmd->args[0], cmd->args) == -1) {
+        if (execvp(cmd->args[0], cmd->args) == -1)
+        {
             fprintf(stderr, "myshell: command not found: %s\n", cmd->args[0]);
-            printf("bruhruhruhru");
             exit(EXIT_FAILURE);
-
         }
-        printf("got bruhuhruehr\n");
-        exit(EXIT_SUCCESS);
-    } else if (pid < 0) {
+        // exit(EXIT_SUCCESS);
+    }
+    else if (pid < 0)
+    {
         fprintf(stderr, "Error in creating child process for command %s\n", cmd->args[0]);
-    } else {
+    }
+    else
+    {
         // Parent process
-        unsigned status;
+        int status;
         struct rusage usage;
 
-        while (waitpid(pid, &status, WUNTRACED) == 0) { // matthew jeong helped me with this line even though he is not my partner so shoutout to him (sorry i failed you zidane)
-            int resources = getrusage(RUSAGE_CHILDREN, &usage);
-            if (resources == -1) {
-                fprintf(stderr, "Error in getting resource usage\n");
-            }
-            printf("HELLLO!!!!\n");
-            int end_tm = gettimeofday(&end_time, NULL);
-            if (end_tm == -1) {
-                fprintf(stderr, "Error in getting end time\n");
-            }
-            time_t real_time = (end_time.tv_sec - start_time.tv_sec);
-            
-            // Extra Credit Code (but im not sure if ur thing is fixed atp or not)
-            if (WIFEXITED(status) != 0){
-                exit_status = WEXITSTATUS(status); //store exit code for echo $?
-            }
-            
-            if (status != 0) {
-                if (WIFSIGNALED(status)) {
-                    fprintf(stderr, "Child process %d exited with signal %d (%s)\n", pid, WTERMSIG(status), strsignal(WTERMSIG(status)));
-                    fprintf(stderr, "Real: %s User: %s Sys: %s", time_parser(real_time), time_parser(usage.ru_utime.tv_sec), time_parser(usage.ru_stime.tv_sec));
-                    break;
-                }
-                else {
-                    fprintf(stderr, "Child process %d exited with return value %d\n", pid, WEXITSTATUS(status));
-                    fprintf(stderr, "Real: %s User: %s Sys: %s", time_parser(real_time), time_parser(usage.ru_utime.tv_sec), time_parser(usage.ru_stime.tv_sec));
-                }
-            }
-            else if (errno != EINTR) {
-                fprintf(stderr, "Error in waiting for child process %d\n", pid);
-                break;
-            }
-            else {
-                fprintf(stderr, "Child process %d exited normally\n", pid);
-                fprintf(stderr, "Real: %s User: %s Sys: %s", time_parser(real_time), time_parser(usage.ru_utime.tv_sec), time_parser(usage.ru_stime.tv_sec));
-            }
+        while (waitpid(pid, &status, WUNTRACED) == 0)
+            ; // hanging here until child process ends
 
-            
+        int resources = getrusage(RUSAGE_CHILDREN, &usage);
+        if (resources == -1)
+            fprintf(stderr, "Error in getting resource usage\n");
+
+        int end_tm = gettimeofday(&end_time, NULL);
+        if (end_tm == -1)
+            fprintf(stderr, "Error in getting end time\n");
+
+        float real_time = time_parser2(start_time, end_time);
+
+        if (WIFEXITED(status) != 0) {
+            exit_status = WEXITSTATUS(status);
+            if (exit_status != 0) fprintf(stderr, "Child process %d exited with return value %d\n", pid, exit_status);
+            else fprintf(stderr, "Child process %d exited normally\n", pid);
         }
+        else if (WIFSIGNALED(status)) {
+            fprintf(stderr, "Child process %d exited with signal %d (%s)\n",
+                    pid, WTERMSIG(status), strsignal(WTERMSIG(status)));
+        }
+        else{
+            fprintf(stderr, "Child process %d exited normally\n", pid);
+        }
+
+        fprintf(stderr, "Real: %fs User: %fs Sys: %fs\n",
+                real_time, 
+                time_parser(usage.ru_utime),
+                time_parser(usage.ru_stime));
     }
     return 0;
 }
