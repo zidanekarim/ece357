@@ -4,6 +4,7 @@
 char* file_parser(char* input_str) { // extracts the file name from a redirection string
     // assumes input_str starts with a redirection operator
     char *delimiter = " \t\r\n\a";
+    printf("Parsing file from string: %s\n", input_str);
     char *token;
     token = strtok(input_str, delimiter); // filename
     return token;
@@ -21,7 +22,7 @@ int myshell_loop(void) {
     int last_status = 0;
 
     while (run) {
-        printf("myshell> ");
+        printf("myshell: ");
         linelen = getline(&line, &bufsize, stdin);
         if (linelen == -1) {
             if (feof(stdin)) { // means EOF (ctrl d)
@@ -64,13 +65,14 @@ int myshell_loop(void) {
             continue;
         } else if (strcmp(args[0], "exit") == 0) {
             if (args[1] != NULL) {
+                char* arg1 = args[1];
                 free(args);
-                int status = atoi(args[1]);
-                if (status == 0 && strcmp(args[1], "0") != 0) { // atoi returns 0 on error so check if atoi failed instead of input being 0
+                int status = atoi(arg1);
+                if (status == 0 && strcmp(arg1, "0") != 0) { // atoi returns 0 on error so check if atoi failed instead of input being 0
                     fprintf(stderr, "myshell: invalid argument to exit\n"); 
                     continue;
                 }
-                exit(atoi(args[1]));
+                exit(status);
             }
             else {
                 free(args);
@@ -105,47 +107,40 @@ int myshell_loop(void) {
         cmd->error_append = 0;
         // parsing redirections!!! (most fun part)
         for (int i = 0; args[i] != NULL; i++) {
-            if (strcmp(args[i], "<") == 0) { // strcmp will look at first char 
-                // look for next whitespace separated token
-                cmd->input_file = file_parser(args[i+1]);
-                // remove the redirection tokens from args
-                for (int j = i; args[j-1] != NULL; j++) {
-                    args[j] = args[j+1];
-                }
-                i--; 
-                    
-            } else if (strcmp(args[i], ">") == 0) {
-                cmd->output_file = args[i+1];
+            char* argument = args[i];
+            char *filename = strtok(argument, "2<>"); 
+           
+            if (!filename) continue;
+
+            if (argument[0] == '<') {
+                cmd->input_file = filename;
+            }
+            else if (argument[0] == '>' && argument[1] != '>') {
+                cmd->output_file = filename;
                 cmd->append = 0;
-                for (int j = i; args[j-1] != NULL; j++) {
-                    args[j] = args[j+1];
-                }
-                i--; 
-            } else if (strcmp(args[i], ">>") == 0) {
-                cmd->output_file = file_parser(args[i+2]);
+            }
+            else if (argument[0] == '>' && argument[1] == '>') {
+                cmd->output_file = filename;
                 cmd->append = 1;
-                for (int j = i; args[j-1] != NULL; j++) {
-                    args[j] = args[j+1];
-                }
-                i--; 
-            } else if (strcmp(args[i], "2>") == 0) {
-                cmd->error_file = file_parser(args[i+1]);
-                for (int j = i; args[j-1] != NULL; j++) {
-                    args[j] = args[j+1];
-                }
-                i--; 
             }
-            
-            else if (strcmp(args[i], "2>>") == 0) {
-                cmd->error_file = file_parser(args[i+2]);
+            else if (argument[0] == '2' && argument[1] == '>' && argument[2] != '>') {
+                cmd->error_file = filename;
+                cmd->error_append = 0;
+            }
+            else if (argument[0] == '2' && argument[1] == '>' && argument[2] == '>') {
+                cmd->error_file = filename;
                 cmd->error_append = 1;
-                for (int j = i; args[j-1] != NULL; j++) {
-                    args[j] = args[j+1];
-                }
-                i--; 
+            } else {
+                continue; 
             }
-                
+
+            // skipping over these args in the args array because exec doesnt care
+            for (int j = i; args[j] != NULL; j++) {
+                args[j] = args[j + 1];
+            }
+            i--;
         }
+
                 
         last_status = myshell_execute(cmd);
         free(cmd);
@@ -167,6 +162,10 @@ int myshell_execute(struct command* cmd) {
     int in_fd = STDIN_FILENO;
 
     if (cmd->input_file != NULL) {
+        // close STDIN_FILENO;
+
+
+
         in_fd = open(cmd->input_file, O_RDONLY);
         if (in_fd < 0) {
             fprintf(stderr, "myshell: cannot open input file %s\n", cmd->input_file);
@@ -220,20 +219,19 @@ int myshell_execute(struct command* cmd) {
 
 
         if (execvp(cmd->args[0], cmd->args) == -1) {
-            fprintf(stderr, "myshell: command not found: %s\n", args[0]);
+            fprintf(stderr, "myshell: command not found: %s\n", cmd->args[0]);
         }
         exit(EXIT_FAILURE);
     } else if (pid < 0) {
-        fprintf(stderr, "Error in creating child process for command %s\n", args[0]);
+        fprintf(stderr, "Error in creating child process for command %s\n", cmd->args[0]);
     } else {
         // Parent process
         int status;
         while (waitpid(pid, &status, WUNTRACED) == -1) {
             if (errno != EINTR) {
-                fprintf(stderr, "Error waiting for child process for command %s\n", args[0]);
+                fprintf(stderr, "Error waiting for child process for command %s\n", cmd->args[0]);
                 break;
             }
-            
         }
     }
     return 1;
