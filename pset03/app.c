@@ -1,16 +1,26 @@
 #include "myshell.h"
+#include <string.h>
+#include <stdbool.h>
 
 int main(int argc, char **argv) {
-    // Start the shell loop
-    // while (getopt(argc, argv, "") != -1) {
-    //     switch (opt) {
-    //         case '?':
-    //         default:
-    //             fprintf(stderr, "Usage: %s\n", argv[0]);
-    //             exit(EXIT_FAILURE);
-    //     }
-    // }
+    FILE *input = stdin; //default input is stdin
+    bool interactive = true; //default should interactive shell
 
-    return myshell_loop();
+    if(argc == 2){ //interpreter accepts a file
+        interactive = false;
+        input = fopen(argv[1], "r");
+        if (!input) {
+            perror("myshell: cannot open script file");
+        exit(EXIT_FAILURE);
+        }
 
+        myshell_loop(input, interactive);
+        fclose(input);
+
+    }else{
+        myshell_loop(input, interactive); //standard shell 
+    }
+
+
+    return 0;
 }

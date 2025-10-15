@@ -1,17 +1,16 @@
 #include "myshell.h"
 
 
-char* file_parser(char* input_str) { // extracts the file name from a redirection string
-    // assumes input_str starts with a redirection operator
-    char *delimiter = " \t\r\n\a";
-    printf("Parsing file from string: %s\n", input_str);
-    char *token;
-    token = strtok(input_str, delimiter); // filename
-    return token;
-}
+// char* file_parser(char* input_str) { // extracts the file name from a redirection string
+//     // assumes input_str starts with a redirection operator
+//     char *delimiter = " \t\r\n\a";
+//     printf("Parsing file from string: %s\n", input_str);
+//     char *token;
+//     token = strtok(input_str, delimiter); // filename
+//     return token;
+// }
 
-
-int myshell_loop(void) {
+int myshell_loop(FILE *input, bool interactive){
     char *line = NULL;
     size_t bufsize = 0;
     ssize_t linelen;
@@ -21,11 +20,14 @@ int myshell_loop(void) {
     int run = 1;
     int last_status = 0;
 
-    while (run) {
-        printf("myshell: ");
-        linelen = getline(&line, &bufsize, stdin);
+    while(run){
+        if (interactive){
+            printf("myshell: ");
+        }
+
+        linelen = getline(&line, &bufsize, input);
         if (linelen == -1) {
-            if (feof(stdin)) { // means EOF (ctrl d)
+            if (feof(input)) { // means EOF (ctrl d)
                 break; 
             } else {
                 fprintf(stderr, "myshell: Error in reading input\n");
@@ -105,6 +107,7 @@ int myshell_loop(void) {
         cmd->error_file = NULL;
         cmd->append = 0;
         cmd->error_append = 0;
+        
         // parsing redirections!!! (most fun part)
         for (int i = 0; args[i] != NULL; i++) {
             char* argument = args[i];
@@ -117,7 +120,7 @@ int myshell_loop(void) {
             }
             else if (argument[0] == '>' && argument[1] != '>') {
                 cmd->output_file = filename;
-                cmd->append = 0;
+                cmd->append = 0; // for flags
             }
             else if (argument[0] == '>' && argument[1] == '>') {
                 cmd->output_file = filename;
@@ -163,8 +166,6 @@ int myshell_execute(struct command* cmd) {
 
     if (cmd->input_file != NULL) {
         // close STDIN_FILENO;
-
-
 
         in_fd = open(cmd->input_file, O_RDONLY);
         if (in_fd < 0) {
