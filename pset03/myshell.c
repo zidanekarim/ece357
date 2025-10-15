@@ -3,13 +3,13 @@
 
 int exit_status; // make it global
 
-float time_parser(struct timeval time) {
-    printf("time: %ld seconds and %ld microseconds\n", time.tv_sec, time.tv_usec);
-    return (float)(time.tv_sec + time.tv_usec / 1000000);
+double time_parser(struct timeval time) {
+    return (double) (time.tv_sec + time.tv_usec / 1000000.0);
 }
 
-float time_parser2(struct timeval time1, struct timeval time2) {
-    return (float)(time2.tv_sec - time1.tv_sec + (time2.tv_usec - time1.tv_usec) / 1000000);
+double time_parser2(struct timeval time1, struct timeval time2)
+{
+    return (double) (time2.tv_sec - time1.tv_sec + (time2.tv_usec - time1.tv_usec) / 1000000.0);
 }
 
 int myshell_loop(FILE *input, bool interactive)
