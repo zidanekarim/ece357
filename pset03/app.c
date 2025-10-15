@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
         }
 
-        myshell_loop(input, interactive);
+        myshell_loop(input, interactive); //script interpreter
         fclose(input);
 
     }else{

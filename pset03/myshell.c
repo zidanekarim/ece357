@@ -10,6 +10,9 @@
 //     return token;
 // }
 
+int exit_status; //make it global
+
+
 int myshell_loop(FILE *input, bool interactive){
     char *line = NULL;
     size_t bufsize = 0; // fails if not size_t
@@ -95,6 +98,12 @@ int myshell_loop(FILE *input, bool interactive){
             free(args);
             continue;
         }
+
+        // EC part (a) - need to incorporate error checking
+        else if ((strcmp(args[0], "echo") == 0) && (args[1] != NULL) && (strcmp(args[1], "$?"))){
+                printf("%d", exit_status);
+        }
+
         struct command* cmd = (struct command*) malloc(sizeof(struct command));
         if (cmd == NULL) {
             fprintf(stderr, "myshell: allocation error\n");
@@ -236,7 +245,7 @@ int myshell_execute(struct command* cmd) {
         unsigned status;
         struct rusage usage;
 
-        while (waitpid(pid, &status, WUNTRACED) == 0) { // matthew jeong helped me with this line even though he is not my partner so shoutout to him
+        while (waitpid(pid, &status, WUNTRACED) == 0) { // matthew jeong helped me with this line even though he is not my partner so shoutout to him (sorry i failed you zidane)
             int resources = getrusage(RUSAGE_CHILDREN, &usage);
             if (resources == -1) {
                 fprintf(stderr, "Error in getting resource usage\n");
@@ -248,7 +257,10 @@ int myshell_execute(struct command* cmd) {
             }
             time_t real_time = (end_time.tv_sec - start_time.tv_sec);
             
-            
+            // Extra Credit Code (but im not sure if ur thing is fixed atp or not)
+            if (WIFEXITED(status) != 0){
+                exit_status = WEXITSTATUS(status); //store exit code for echo $?
+            }
             
             if (status != 0) {
                 if (WIFSIGNALED(status)) {
