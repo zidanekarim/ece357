@@ -17,6 +17,8 @@
 #include <string.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <ctype.h>
+#include <glob.h>
 
 
 
@@ -32,7 +34,7 @@ struct command {
 #define ARG_MAX 2097152 // max length of args in my (zidane's) linux system, found with getconf ARG_MAX
 extern bool interactive;
 
-int myshell_loop(FILE *input, bool interactive);
+int myshell_loop(FILE *input, bool interactive, int argc, char **argv);
 int myshell_execute(struct command* cmd);
 
 double time_parser(struct timeval time);
