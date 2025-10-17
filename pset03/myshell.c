@@ -31,6 +31,7 @@ int myshell_loop(FILE *input, bool interactive)
         }
 
         linelen = getline(&line, &bufsize, input);
+        line[strcspn(line, "\r\n")] = 0; // needed to add this to fix file input/script parsing
         if (linelen == -1)
         {
             if (feof(input))
