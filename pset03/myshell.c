@@ -2,6 +2,7 @@
 
 
 int exit_status; // make it global
+bool custom_PS = false; //default to 'myshell: '
 
 double time_parser(struct timeval time) {
     return (double) (time.tv_sec + time.tv_usec / 1000000.0);
@@ -12,7 +13,7 @@ double time_parser2(struct timeval time1, struct timeval time2)
     return (double) (time2.tv_sec - time1.tv_sec + (time2.tv_usec - time1.tv_usec) / 1000000.0);
 }
 
-int myshell_loop(FILE *input, bool interactive)
+int myshell_loop(FILE *input, bool interactive, int argc, char **argv)
 {
     char *line = NULL;
     size_t bufsize = 0; // fails if not size_t
@@ -22,12 +23,17 @@ int myshell_loop(FILE *input, bool interactive)
     char **args;
     int run = 1;
     int last_status = 0;
+    glob_t wildcard_match;
 
     while (run)
     {
-        if (interactive)
-        {
-            printf("myshell: ");
+        if (interactive){   
+            if(custom_PS){
+                char *name = getenv("PS1");
+                printf("%s ", name);
+            }else{
+                printf("myshell: ");
+            }
         }
 
         linelen = getline(&line, &bufsize, input);
@@ -65,6 +71,52 @@ int myshell_loop(FILE *input, bool interactive)
         }
         args[position] = NULL;
 
+        //EC
+        memset(&wildcard_match, 0, sizeof(glob_t));
+
+        for (int i = 0; args[i] != NULL; i++){
+            char *argument = args[i];      
+            //EC(b) - Find any instance of $ followed by a number so parse through each token to find any starting with $ 
+            // separated this from i/o parsing redirection since the token stripping was interfering >:(
+            if (argument[0] == '$' && isdigit(argument[1])){
+                if(!interactive){
+                    int n = atoi(&argument[1]); // get position for corresponding shell script input
+                        if (n + 1 < argc) {  // +1 for command
+                            args[i] = argv[n + 1]; // actually change args[i] to contain whatever we inputted
+                        }
+                    }
+            }
+
+            //EC (d) 
+            // separate the cases between (b) and (d) so we check to see if its a letter
+            if (argument[0] == '$' && isalpha(argument[1])){
+                char *env_var = argument + 1; // argument points to $xxx so we just want xxx
+                char *env_val = getenv(env_var);
+                // preventing NULL from being an argument (that would be bad thanks aidan for pointing it out)
+                if (env_val != NULL){
+                    args[i] = env_val;
+                }else{
+                    args[i] = "";
+                }
+            }
+
+            // EC (e) by far the hardest one (understanding glob was a pain)
+            // if (argument[0] == '?' || argument[0] == '*' || argument[0] == '['){   no work since then our prior cmds get yoinked 
+            int flags;
+            // On first iteration, need flag = 0 since APPEND should not be set on first invocation of glob()
+            if (wildcard_match.gl_pathc == 0){
+                flags = 0; 
+            }else{
+                flags = GLOB_APPEND;
+            }
+            //Append matching pathname or the actual string if no wildcard
+            glob(args[i], flags | GLOB_NOCHECK, NULL, &wildcard_match);
+            // }
+        }
+
+        //Reconstruct args to include all our matched things + unmatched things --> replace all previous free(args) w/ globfree()
+        args = wildcard_match.gl_pathv; 
+
         // builtin commands
         if (strcmp(args[0], "cd") == 0)
         {
@@ -80,7 +132,7 @@ int myshell_loop(FILE *input, bool interactive)
                     fprintf(stderr, "myshell: no such file or directory: %s\n", args[1]);
                 }
             }
-            free(args);
+            globfree(&wildcard_match);;
             continue;
         }
         else if (strcmp(args[0], "exit") == 0)
@@ -88,7 +140,7 @@ int myshell_loop(FILE *input, bool interactive)
             if (args[1] != NULL)
             {
                 char *arg1 = args[1];
-                free(args);
+                globfree(&wildcard_match);;
                 int status = atoi(arg1);
                 if (status == 0 && strcmp(arg1, "0") != 0)
                 { // atoi returns 0 on error so check if atoi failed instead of input being 0
@@ -99,7 +151,7 @@ int myshell_loop(FILE *input, bool interactive)
             }
             else
             {
-                free(args);
+                globfree(&wildcard_match);;
                 exit(last_status);
             }
             break;
@@ -118,21 +170,38 @@ int myshell_loop(FILE *input, bool interactive)
                 errno = EINVAL;
                 fprintf(stderr, "myshell: error retrieving current directory\n");
             }
-            free(args);
+            globfree(&wildcard_match);;
             continue;
         }
 
-        // EC part (a) - need to incorporate error checking
-        else if ((strcmp(args[0], "echo") == 0) && (args[1] != NULL) && (strcmp(args[1], "$?")))
+        // EC part (a) 
+        else if ((strcmp(args[0], "echo") == 0) && (args[1] != NULL) && (strcmp(args[1], "$?")) == 0)
         {
-            printf("%d", exit_status);
+            printf("%d\n", exit_status);
+            globfree(&wildcard_match);;
+            continue;
+        }
+
+        //EC part (c) - Must be in format of: export PS1='Whatever'
+        else if ((strcmp(args[0], "export") == 0) && (args[1] != NULL))
+        {
+            custom_PS = true;
+
+            //New PS1 --> split up the args
+            char *PS_arg = args[1];  
+            char *curr_PS1 = strtok(PS_arg, "=");
+            char *new_PS = strtok(NULL, "=");
+
+            setenv(curr_PS1, new_PS, 1);
+            globfree(&wildcard_match);;
+            continue;
         }
 
         struct command *cmd = (struct command *)malloc(sizeof(struct command));
         if (cmd == NULL)
         {
             fprintf(stderr, "myshell: allocation error\n");
-            free(args);
+            globfree(&wildcard_match);;
             continue;
         }
         cmd->args = args;
@@ -142,10 +211,10 @@ int myshell_loop(FILE *input, bool interactive)
         cmd->append = 0;
         cmd->error_append = 0;
 
-        // parsing redirections!!! (most fun part)
+        // i/o parsing redirections!!! (most fun part)
         for (int i = 0; args[i] != NULL; i++)
         {
-            char *argument = args[i];
+            char *argument = args[i];   
             char *filename = strtok(argument, "2<>");
 
             if (!filename)
@@ -191,7 +260,7 @@ int myshell_loop(FILE *input, bool interactive)
         last_status = myshell_execute(cmd);
         free(cmd);
 
-        free(args);
+        globfree(&wildcard_match);;
     }
     free(line);
     return 0;
@@ -317,6 +386,7 @@ int myshell_execute(struct command *cmd)
             else fprintf(stderr, "Child process %d exited normally\n", pid);
         }
         else if (WIFSIGNALED(status)) {
+            exit_status = 128 + WTERMSIG(status);
             fprintf(stderr, "Child process %d exited with signal %d (%s)\n",
                     pid, WTERMSIG(status), strsignal(WTERMSIG(status)));
         }
@@ -329,5 +399,5 @@ int myshell_execute(struct command *cmd)
                 time_parser(usage.ru_utime),
                 time_parser(usage.ru_stime));
     }
-    return 0;
+    return exit_status;
 }
