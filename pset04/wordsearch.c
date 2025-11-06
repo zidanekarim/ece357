@@ -11,13 +11,21 @@ char *toUpperCase(char *str)
 int totalCount = 0;
 void handle_sigpipe(int sig)
 {
-    fprintf(stderr, "Total Matched : %d\n");
+    fprintf(stderr, "Total Matched : %d\n", totalCount);
     exit(0);
 }
 
 int main(int argc, char **argv)
 {
-
+    struct sigaction sa; // handler stuff copied from man + professor hak code lowkey
+    sa.sa_handler = handle_sigpipe;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    if (sigaction(SIGPIPE, &sa, NULL) == -1)
+    {
+        perror("sigaction");
+        exit(1);
+    }
 
     if (argc != 2)
     {
@@ -78,16 +86,7 @@ int main(int argc, char **argv)
             }
         }
     }
-    struct sigaction sa; // handler stuff copied from man + professor hak code lowkey
-    sa.sa_handler = handle_sigpipe;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    if (sigaction(SIGPIPE, &sa, NULL) == -1)
-    {
-        perror("sigaction");
-        exit(1);
-    }
-    
+   
     fprintf(stderr, "Total Matched : %d\n", totalCount); // note: can't figure out how to get this to print LAST when piped to pager
 
     return 0;

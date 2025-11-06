@@ -1,5 +1,9 @@
 #include "wordgen.h"
 
+void handle_sigpipe(int sig){
+    exit(0);
+}
+
 int main(int argc, char **argv)
 {
     srand(time(NULL));
@@ -31,6 +35,15 @@ int main(int argc, char **argv)
     {
         while (1)
         {
+
+            struct sigaction sa; // handler stuff copied from man + professor hak code lowkey
+            sa.sa_handler = handle_sigpipe;
+            sigemptyset(&sa.sa_mask);
+            sa.sa_flags = 0;
+            if (sigaction(SIGPIPE, &sa, NULL) == -1) {
+                perror("sigaction");
+                exit(1);
+            }
             int word_len = (rand() % 8) + 3;
             for (int j = 0; j < word_len; j++)
             {

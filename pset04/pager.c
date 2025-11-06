@@ -25,6 +25,10 @@ int main() {
         input = fgets(buffer, sizeof(buffer), terminal);
         if (buffer[0] == 'q' || buffer[0] == 'Q') {
             run = 0;
+            // sending signal to wordgen to terminate
+            fclose(terminal);
+            kill(0, SIGPIPE);
+            break;
         }
         else if (buffer[0] == '\n') {
             continue;
