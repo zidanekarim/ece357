@@ -27,8 +27,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    if (pid1 == 0) {
-        // first child: wordgen
+    if (pid1 == 0) { // wordgen
         close(fd1[0]); // close read end
         dup2(fd1[1], STDOUT_FILENO); // redirect stdout to pipe
         close(fd1[1]);
@@ -51,9 +50,10 @@ int main(int argc, char *argv[]) {
     }
 
     if (pid2 == 0) {
-        dup2(fd1[0], STDIN_FILENO); // redirect stdin from pipe
+        dup2(fd1[0], STDIN_FILENO); //  stdin from pipe
         close(fd1[0]);
-        dup2(fd2[1], STDOUT_FILENO); // redirect stdout to pipe
+        close(fd1[1]);
+        dup2(fd2[1], STDOUT_FILENO); 
         close(fd2[1]);
         execlp("./wordsearch", "./wordsearch", "words.txt", NULL);
         perror("execlp wordsearch");
@@ -68,8 +68,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (pid3 == 0) {
-        
-        dup2(fd2[0], STDIN_FILENO); // redirect stdin from pipe
+        close(fd2[1]);
+        dup2(fd2[0], STDIN_FILENO); //  stdin from pipe
         close(fd2[0]);
 
         execlp("./pager", "./pager", NULL);
@@ -77,12 +77,23 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // parent
-
     close(fd2[0]);
     close(fd2[1]);
     waitpid(pid1, NULL, 0);
-    waitpid(pid2, NULL, 0);
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        fprintf(stderr, "wordgen failed\n");
+        exit(1);
+    }
+    else {
+        printf("Wordgen child pid %d exited with status %d\n", pid1, WEXITSTATUS(status));
+        waitpid(pid2, NULL, 0);
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0){
+            fprintf(stderr, "wordgen failed\n");
+            exit(1);
+        }
+    }
+    
+    
     waitpid(pid3, NULL, 0);
 
     return 0;
