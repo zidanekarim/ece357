@@ -88,14 +88,14 @@ int main(int argc, char *argv[]) {
     else {
         waitpid(pid2, &status2, 0);
         if (WIFEXITED(status2) && WEXITSTATUS(status2) != 0){
-            fprintf(stderr, "wordgen failed\n");
+            fprintf(stderr, "wordsearch failed\n");
             exit(1);
         }
         else {
             
             waitpid(pid3, &status3, 0);
             if (WIFEXITED(status3) && WEXITSTATUS(status3) != 0) {
-                fprintf(stderr, "wordgen failed\n");
+                fprintf(stderr, "pager failed\n");
                 exit(1);
             }
             else {
@@ -105,10 +105,5 @@ int main(int argc, char *argv[]) {
             }
             }
         }
-    
-    
-    
-    waitpid(pid3, NULL, 0);
-
     return 0;
 }
