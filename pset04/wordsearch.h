@@ -20,7 +20,6 @@
 #include <ctype.h>
 #include <glob.h>
 #include <time.h>
-
-
+#include <signal.h>
 
 #endif

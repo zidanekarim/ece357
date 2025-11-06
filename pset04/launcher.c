@@ -1,8 +1,6 @@
 #include "launcher.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
+
+
 
 int main(int argc, char *argv[]) {
     int lim = 0;
@@ -79,19 +77,35 @@ int main(int argc, char *argv[]) {
 
     close(fd2[0]);
     close(fd2[1]);
-    waitpid(pid1, NULL, 0);
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+    int status1;
+    int status2;
+    int status3;
+    waitpid(pid1, &status1, 0);
+    if (WIFEXITED(status1) && WEXITSTATUS(status1) != 0) {
         fprintf(stderr, "wordgen failed\n");
         exit(1);
     }
     else {
-        printf("Wordgen child pid %d exited with status %d\n", pid1, WEXITSTATUS(status));
-        waitpid(pid2, NULL, 0);
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0){
+        waitpid(pid2, &status2, 0);
+        if (WIFEXITED(status2) && WEXITSTATUS(status2) != 0){
             fprintf(stderr, "wordgen failed\n");
             exit(1);
         }
-    }
+        else {
+            
+            waitpid(pid3, &status3, 0);
+            if (WIFEXITED(status3) && WEXITSTATUS(status3) != 0) {
+                fprintf(stderr, "wordgen failed\n");
+                exit(1);
+            }
+            else {
+                printf("Wordgen child pid %d exited with status %d\n", pid1, WEXITSTATUS(status1));
+                printf("Wordsearch child pid %d exited with status %d\n", pid2, WEXITSTATUS(status2));
+                printf("Pager child pid %d exited with status %d\n", pid3, WEXITSTATUS(status3));
+            }
+            }
+        }
+    
     
     
     waitpid(pid3, NULL, 0);
