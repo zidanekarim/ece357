@@ -1,7 +1,11 @@
 CFLAGS = -Wall -Wextra
 DEBUGFLAGS = -g
 default: all
-all: clean wordgen wordsearch pager
+all: clean launcher wordgen wordsearch pager
+launcher: launcher.o wordgen wordsearch pager
+	@gcc $(CFLAGS) -o launcher launcher.o
+launcher.o: launcher.c launcher.h
+	@gcc $(CFLAGS) -c launcher.c
 wordgen: wordgen.o
 	@gcc $(CFLAGS) -o wordgen wordgen.o
 wordgen.o: wordgen.c wordgen.h
