@@ -24,24 +24,27 @@ int main(int argc, char *argv[]) {
         }
     }
     if (optind < argc) {
-        files = malloc((argc - optind) * 1024);
+        files = malloc((argc - optind - 1) * 1024);
     }
     else {
         fprintf(stderr, "No files provided\n");
         return -1;
     }
-    for (int i = optind; i < argc; i++) {
-        files[i - optind] = argv[i];
+
+    for (int i = 0; i < argc - optind - 1; i++)
+    {
+        files[i] = argv[optind + 1 + i];
+        printf("File to search: %s\n", files[i]);
     }
 
-}
-    const char *binary_pattern = argv[optind - 1];
+    const char *binary_pattern = argv[optind];
+    printf("Searching for pattern: %s\n", binary_pattern);
 
-    for (int i = 0; i < argc - optind; i++) {
+    for (int i = 0; i < argc - optind -1; i++) {
         const char *file_path = files[i];
         int fd = open(file_path, O_RDONLY);
         if (fd == -1) {
-            perror("open");
+            fprintf(stderr, "Error opening file %s: %s\n", file_path, strerror(errno));
             continue;
         }
         if (pattern_match(fd, binary_pattern) == 0) {

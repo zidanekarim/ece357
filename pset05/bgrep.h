@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <glob.h>
 #include <time.h>
+#include <sys/mman.h>
 
 int pattern_match(int fd, const char *binary_pattern);
 

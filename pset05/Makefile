@@ -1,7 +1,7 @@
 CFLAGS = -Wall -Wextra
 DEBUGFLAGS = -g
 
-all: clean myshell
+all: clean runner
 runner: runner.o bgrep.o
 	@gcc $(CFLAGS) -o bgrep runner.o bgrep.o
 debug: clean
