@@ -46,8 +46,9 @@ int main(int argc, char *argv[]) {
     char *binary_pattern;
     if (pattern_file != NULL || pattern_file_flag)
     {
+            FILE *pf;
         if (pattern_file != NULL) {
-            FILE *pf = fopen(pattern_file, "r");
+            pf = fopen(pattern_file, "r");
             if (pf == NULL) {
                 fprintf(stderr, "Error opening pattern file %s: %s\n", pattern_file, strerror(errno));
                 return -1;
@@ -55,7 +56,7 @@ int main(int argc, char *argv[]) {
         }
         else {
             printf("Reading pattern from stdin\n");
-            FILE *pf = stdin;
+            pf = stdin;
         }
         char buffer[1024];
         if (fgets(buffer, sizeof(buffer), pf) != NULL) {

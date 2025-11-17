@@ -18,10 +18,20 @@ int pattern_match(int fd, const char *binary_pattern, int context) {
         return -1;
     }
     int pattern_length = strlen(binary_pattern);
-    for (int i = 0; i <= file_size - pattern_length; i += pattern_length) {
+    for (int i = 0; i <= file_size; i += 1) {
         if (memcmp(map + i, binary_pattern, pattern_length) == 0) {
             if (context > 0) {
-                
+                int start = i - context;
+                if (start < 0) {
+                    start = 0;
+                }
+                int end = i + pattern_length + context;
+                if (end > file_size) {
+                    end = file_size;
+                }
+                fwrite(map + start, 1, end - start, stdout);
+                printf("\n");
+
                 
             }
 
