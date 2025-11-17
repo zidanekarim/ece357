@@ -14,8 +14,12 @@ int main(int argc, char *argv[]) {
         switch (c)
         {
         case 'p':
+            printf("Option -p selected\n");
+            pattern_file = argv[optind]; // not sure why optarg doesn't work here?
+            break;
 
         case 'c':
+            context = atoi(optarg);
             break;
         default:
             fprintf(stderr, "Unknown option -%c\n", optopt);
@@ -36,8 +40,22 @@ int main(int argc, char *argv[]) {
         files[i] = argv[optind + 1 + i];
         printf("File to search: %s\n", files[i]);
     }
-
-    const char *binary_pattern = argv[optind];
+    char *binary_pattern;
+    if (pattern_file != NULL)
+    {
+        FILE *pf = fopen(pattern_file, "r");
+        if (pf == NULL) {
+            fprintf(stderr, "Error opening pattern file %s: %s\n", pattern_file, strerror(errno));
+            return -1;
+        }
+        char buffer[1024];
+        if (fgets(buffer, sizeof(buffer), pf) != NULL) {
+            buffer[strcspn(buffer, "\n")] = 0;
+            binary_pattern = buffer;
+        }
+        fclose(pf);
+    }
+    else binary_pattern = argv[optind];
     printf("Searching for pattern: %s\n", binary_pattern);
 
     for (int i = 0; i < argc - optind -1; i++) {
