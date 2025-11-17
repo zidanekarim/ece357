@@ -22,6 +22,6 @@
 #include <time.h>
 #include <sys/mman.h>
 
-int pattern_match(int fd, const char *binary_pattern);
+int pattern_match(int fd, const char *binary_pattern, int context);
 
 #endif

@@ -1,6 +1,6 @@
 #include "bgrep.h"
 
-int pattern_match(int fd, const char *binary_pattern) {
+int pattern_match(int fd, const char *binary_pattern, int context) {
     struct stat file_stat;
     if (fstat(fd, &file_stat) == -1) {
         perror("fstat");
@@ -17,16 +17,24 @@ int pattern_match(int fd, const char *binary_pattern) {
         perror("mmap");
         return -1;
     }
-    // Search for the binary pattern in the mapped file
     int pattern_length = strlen(binary_pattern);
     for (int i = 0; i <= file_size - pattern_length; i += pattern_length) {
         if (memcmp(map + i, binary_pattern, pattern_length) == 0) {
-            munmap(map, file_size);
+            if (context > 0) {
+                
+                
+            }
+
+
+            if (munmap(map, file_size) == -1) {
+                perror("munmap");
+                return -1;
+            }
             return 0; // Pattern found
         }
     }
 
-    return -1;
+    return 1;
     
 
 

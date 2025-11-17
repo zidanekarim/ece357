@@ -10,12 +10,15 @@ int main(int argc, char *argv[]) {
     char** files;
     int context = 0;
     char* pattern_file = NULL;
+    int pattern_file_flag = 0;
     while ((c = getopt(argc, argv, "pc:")) != -1){
         switch (c)
         {
         case 'p':
             printf("Option -p selected\n");
+            pattern_file_flag = 1;
             pattern_file = argv[optind]; // not sure why optarg doesn't work here?
+            // if no file specified after -p, just use stdin
             break;
 
         case 'c':
@@ -41,12 +44,18 @@ int main(int argc, char *argv[]) {
         printf("File to search: %s\n", files[i]);
     }
     char *binary_pattern;
-    if (pattern_file != NULL)
+    if (pattern_file != NULL || pattern_file_flag)
     {
-        FILE *pf = fopen(pattern_file, "r");
-        if (pf == NULL) {
-            fprintf(stderr, "Error opening pattern file %s: %s\n", pattern_file, strerror(errno));
-            return -1;
+        if (pattern_file != NULL) {
+            FILE *pf = fopen(pattern_file, "r");
+            if (pf == NULL) {
+                fprintf(stderr, "Error opening pattern file %s: %s\n", pattern_file, strerror(errno));
+                return -1;
+            }
+        }
+        else {
+            printf("Reading pattern from stdin\n");
+            FILE *pf = stdin;
         }
         char buffer[1024];
         if (fgets(buffer, sizeof(buffer), pf) != NULL) {
@@ -65,7 +74,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Error opening file %s: %s\n", file_path, strerror(errno));
             continue;
         }
-        if (pattern_match(fd, binary_pattern) == 0) {
+        if (pattern_match(fd, binary_pattern, context) == 0) {
             printf("Pattern found in file: %s\n", file_path);
         } else {
             printf("Pattern not found in file: %s\n", file_path);
