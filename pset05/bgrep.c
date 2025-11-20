@@ -46,10 +46,14 @@ int pattern_match(int fd, const char *binary_pattern, int context) {
                 if (end > file_size) {
                     end = file_size;
                 }
-                fwrite(map + start, 1, end - start, stdout);
+                for (int j = start; j < end; j++) {
+                    if (map[j] >= 32 && map[j] <= 126) {
+                        printf("%c", map[j]);
+                    } else {
+                        printf("?");
+                    }
+                }
                 printf("\n");
-
-                
             }
 
 
