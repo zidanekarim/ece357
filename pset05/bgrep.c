@@ -54,6 +54,18 @@ int pattern_match(int fd, const char *binary_pattern, int context) {
                     }
                 }
                 printf("\n");
+                for (int j = start; j < end; j++)
+                {
+                    if (map[j] >= 0 && map[j] <= 126)
+                    {
+                        printf(" %02X ", (unsigned char)map[j]);
+                    }
+                    else
+                    {
+                        printf("?");
+                    }
+                }
+                printf("\n");
             }
 
 
