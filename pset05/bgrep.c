@@ -3,7 +3,6 @@
 
 
 int pattern_match(int fd, const char *binary_pattern, int context) {
-    signal(SIGBUS, handle_sigbus);
     struct stat file_stat;
     if (fstat(fd, &file_stat) == -1) {
         perror("fstat");
