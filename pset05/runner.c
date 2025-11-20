@@ -2,7 +2,6 @@
 #include <getopt.h>
 
 
-
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fprintf(stderr, "Usage: %s <binary_pattern> <file_path>\n", argv[0]);
@@ -11,7 +10,8 @@ int main(int argc, char *argv[]) {
     char c;
     char** files;
     int context = 0;
-    char* pattern_file = NULL;
+    int byte_offset;
+    char *pattern_file = NULL;
     int pattern_file_flag = 0;
     while ((c = getopt(argc, argv, "pc:")) != -1){
         switch (c)
@@ -77,10 +77,12 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Error opening file %s: %s\n", file_path, strerror(errno));
             continue;
         }
-        if (pattern_match(fd, binary_pattern, context) == 0) {
+        if ((byte_offset = pattern_match(fd, binary_pattern, context)) > -1) {
             printf("Pattern found in file: %s\n", file_path);
-        } else {
-            
+            printf("%s:%d\n", file_path, byte_offset);
+        }
+        else
+        {
             printf("Pattern not found in file: %s\n", file_path);
         }
         close(fd);

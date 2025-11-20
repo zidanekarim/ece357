@@ -73,7 +73,7 @@ int pattern_match(int fd, const char *binary_pattern, int context) {
                 perror("munmap");
                 return -1;
             }
-            return 0; // Pattern found
+            return i; // Pattern found
         }
     }
 
