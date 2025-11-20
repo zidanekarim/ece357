@@ -1,6 +1,8 @@
 #include "bgrep.h"
 #include <getopt.h>
 
+
+
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fprintf(stderr, "Usage: %s <binary_pattern> <file_path>\n", argv[0]);
@@ -78,6 +80,7 @@ int main(int argc, char *argv[]) {
         if (pattern_match(fd, binary_pattern, context) == 0) {
             printf("Pattern found in file: %s\n", file_path);
         } else {
+            
             printf("Pattern not found in file: %s\n", file_path);
         }
         close(fd);

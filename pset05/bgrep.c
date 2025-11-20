@@ -1,6 +1,9 @@
 #include "bgrep.h"
 
+
+
 int pattern_match(int fd, const char *binary_pattern, int context) {
+    signal(SIGBUS, handle_sigbus);
     struct stat file_stat;
     if (fstat(fd, &file_stat) == -1) {
         perror("fstat");
@@ -18,7 +21,22 @@ int pattern_match(int fd, const char *binary_pattern, int context) {
         return -1;
     }
     int pattern_length = strlen(binary_pattern);
-    for (int i = 0; i <= file_size; i += 1) {
+    if (pattern_length == 0 || pattern_length > file_size) {
+        munmap(map, file_size);
+        return 1; 
+    }
+    for (int i = 0; i <= file_size - pattern_length; i++) {
+        if (fstat(fd, &file_stat) == -1) // check again
+        {
+            perror("fstat");
+            return -1;
+        }
+        int new_file_size = file_stat.st_size;
+        if (new_file_size < file_size) {
+            raise(SIGBUS);
+            return -1;
+        }
+
         if (memcmp(map + i, binary_pattern, pattern_length) == 0) {
             if (context > 0) {
                 int start = i - context;
