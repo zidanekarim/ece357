@@ -9,9 +9,10 @@ debug: clean
 	@gcc $(CFLAGS) $(DEBUGFLAGS) -c bgrep.c
 	@gcc $(CFLAGS) $(DEBUGFLAGS) -o bgrep runner.o bgrep.o
 
-runner.o: runner.c 
-	@gcc $(CFLAGS)  -c runner.c
-bgrep.o: bgrep.c bgrep.h
-	@gcc $(CFLAGS) -c bgrep.c
+spinlock.o: spinlock.h spinlock.c tas.o
+	@gcc $(CFLAGS) -c spinlock.c
+
+tas.o: tas.h tas64.S
+	@gcc $(CFLAGS) -c tas64.S
 clean:
 	@rm -rf *.o bgrep                                                                                                                              
