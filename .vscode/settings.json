@@ -1,6 +1,8 @@
 {
-    "files.associations": {
-        "cstdlib": "c",
-        "mystdio.h": "c"
-    }
+  "files.associations": {
+    "*.css": "tailwindcss",
+    "cstdlib": "c",
+    "mystdio.h": "c",
+    "spinlock.h": "c"
+  }
 }

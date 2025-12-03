@@ -2,7 +2,7 @@
 
 int spin_lock(volatile int *lock) {
     while (tas(lock)) {
-        while (*lock) sched_yield();
+        sched_yield();
     }
     return 0; 
 }

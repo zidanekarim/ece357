@@ -9,7 +9,7 @@ int main() {
     data[0] = 0; 
     data[1] = 0; 
     data[2] = 0; 
-    for (int i =0; i<N_PROC; i++) {
+    for (int i =0; i< N_PROC; i++) {
         pid_t pid = fork();
         if (pid < 0) {
             perror("fork");
