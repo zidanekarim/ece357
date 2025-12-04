@@ -9,12 +9,12 @@ void sigusr1_handler(int signum) {
 void sem_init(struct sem *s, int count) {
     s->count = count;
     s->lock = 0;  
-    for (int i = 0; i < MAX_PROCS; i++) {
+    for (int i = 0; i < N_PROC; i++) {
         s->waiting[i] = 0;
         s->pids[i] = 0;
     }
 }
-`
+
 int sem_try(struct sem *s) { // attempts P-operation but if the semaphore is not available, it returns immediately
     spin_lock(&s->lock); // This check and decrement is atomic
     if (s->count > 0)

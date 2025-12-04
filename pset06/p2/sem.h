@@ -3,6 +3,7 @@
 
 #include "spinlock.h"
 
+
 extern int my_procnum;
 
 struct sem {
