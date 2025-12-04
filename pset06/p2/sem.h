@@ -3,6 +3,8 @@
 
 #include "spinlock.h"
 
+extern int my_procnum;
+
 struct sem {
     int count;
     volatile int lock;
