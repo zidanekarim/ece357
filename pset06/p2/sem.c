@@ -1,11 +1,14 @@
 #include "sem.h"
 
+
+void sigusr1_handler(int signum) {
+    ;
+}
+
+
 void sem_init(struct sem *s, int count) {
     s->count = count;
-    s->lock = 0; 
-    if (s->count == 1) {
-        s->lock = 1; // When the initial value is 1, the semaphore acts as a mutex lock.
-    }
+    s->lock = 0;  
     for (int i = 0; i < MAX_PROCS; i++) {
         s->waiting[i] = 0;
         s->pids[i] = 0;
@@ -27,34 +30,41 @@ int sem_try(struct sem *s) { // attempts P-operation but if the semaphore is not
     }
     
 }
-void sem_wait(struct sem *s) {                        // "P-operation"
-    sigset_t mask, oldmask;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGUSR1);
+void sem_wait(struct sem *s) {    // "P-operation"
+    // handler for SIGUSR1
+    struct sigaction sa = {0};
+    sa.sa_handler = sigusr1_handler;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGUSR1, &sa, NULL);
 
+    sigset_t block_mask, oldmask, suspend_mask;
+    sigemptyset(&block_mask);
+    sigaddset(&block_mask, SIGUSR1);
 
-    while (1) {
-
-
-        spin_lock(&s->lock); // This check and decrement is atomic
+    while (1)
+    {
+        spin_lock(&s->lock);
         if (s->count > 0)
         {
             s->count--;
             spin_unlock(&s->lock);
-            return; 
-        }
-        else {
-            s->waiting[my_procnum] = 1; // 
-            s->pids[my_procnum] = getpid();
-            spin_unlock(&s->lock);
-            sigprocmask(SIG_BLOCK, &mask, &oldmask); 
-            sigsuspend(&oldmask); 
-            sigprocmask(SIG_SETMASK, &mask, NULL);
+            return;
         }
 
-        }
+        s->waiting[my_procnum] = 1;
+        s->pids[my_procnum] = getpid();
+        spin_unlock(&s->lock);
 
-    
+        // block SIGUSR1, save old mask
+        sigprocmask(SIG_BLOCK, &block_mask, &oldmask);
+
+        suspend_mask = oldmask;
+        sigdelset(&suspend_mask, SIGUSR1); // clear
+
+        sigsuspend(&suspend_mask);
+
+        sigprocmask(SIG_SETMASK, &oldmask, NULL);
+    }
 }
 void sem_inc(struct sem *s) {
     spin_lock(&s->lock);

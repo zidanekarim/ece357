@@ -5,11 +5,12 @@
 #include "sem.h"
 
 struct myfifo {
-    long int* buffer;
-    long int* next_rd;
-    long int* next_wr;
-    struct sem sem_empty;
-    struct sem sem_full;
+    unsigned long buffer[MYFIFO_BUFSIZ];
+    unsigned long * next_rd;
+    unsigned long * next_wr;
+    struct sem sem_empty; // writers wait
+    struct sem sem_full; // readers wait
+    struct sem mutex; // crit section
 };
 
 void fifo_init(struct myfifo *f);
