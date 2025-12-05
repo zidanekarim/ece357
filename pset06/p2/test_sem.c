@@ -1,34 +1,53 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include "sem.h"
 
-struct sem s;
+#define N_ITERS  100000
 
-int main()
-{
-    sem_init(&s, 0); // start locked
+int my_procnum;   // global for sem.c
 
-    for (int i = 0; i < N_PROC; i++)
-    {
-        int pid = fork();
+int main(void) {
+    struct sem *s = mmap(NULL,
+                         sizeof(struct sem),
+                         PROT_READ | PROT_WRITE,
+                         MAP_SHARED | MAP_ANONYMOUS,
+                         -1, 0);
+    if (s == MAP_FAILED) {
+        perror("mmap");
+        exit(1);
+    }
 
-        if (pid == 0)
-        {
+    sem_init(s, 0);
+
+    // spawn consumers
+    for (int i = 0; i < N_PROC; i++) {
+        pid_t pid = fork();
+        if (pid < 0) {
+            perror("fork");
+            exit(1);
+        }
+        if (pid == 0) {
             my_procnum = i;
-            printf("Child %d waiting...\n", i);
-            sem_wait(&s);
-            printf("Child %d woke up!\n", i);
+            for (int k = 0; k < N_ITERS; k++) {
+                sem_wait(s);
+            }
+            printf("Consumer %d done\n", i);
             exit(0);
         }
     }
 
-    sleep(1);
+    // producer in parent
+    for (int k = 0; k < N_PROC * N_ITERS; k++) {
+        sem_inc(s);
+    }
+    printf("Producer done\n");
 
-    for (int i = 0; i < N_PROC; i++)
-    {
-        printf("Waking one...\n");
-        sem_inc(&s);
-        sleep(1);
+    for (int i = 0; i < N_PROC; i++) {
+        wait(NULL);
     }
 
-    for (int i = 0; i < N_PROC; i++)
-        wait(NULL);
+    return 0;
 }
