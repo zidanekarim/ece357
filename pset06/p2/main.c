@@ -57,9 +57,8 @@ int main(void)
 
     init_last_seen();
 
-    // Spawn writers
     for (int writer = 0; writer < WRITERS; writer++) {
-        pid_t writer_pid = fork();
+        int writer_pid = fork();
         if (writer_pid < 0) {
             perror("fork failed");
             exit(1);
@@ -76,9 +75,8 @@ int main(void)
         }
     }
 
-    // Spawn reader(s) – spec only *needs* 1, but we keep the loop
     for (int reader = 0; reader < READERS; reader++) {
-        pid_t reader_pid = fork();
+        int reader_pid = fork();
         if (reader_pid < 0) {
             perror("fork failed");
             exit(1);
@@ -98,8 +96,7 @@ int main(void)
             exit(0);
         }
     }
-
-    // Parent waits for all writers + readers
+    // parent
     for (int i = 0; i < WRITERS + READERS; i++) {
         wait(NULL);
     }
