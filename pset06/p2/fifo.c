@@ -13,14 +13,14 @@ void fifo_wr(struct myfifo *f,unsigned long d) {
     sem_wait(&f->sem_empty); // wait for empty slot
     sem_wait(&f->mutex); // enter critical section 
     *(f->next_wr) = d;
-    sem_inc(&f->mutex);    // leave critical section 
+    
     f->next_wr++;
     
     if (f->next_wr == f->buffer + MYFIFO_BUFSIZ) {
         f->next_wr = f->buffer; // wrap around since u wanted circular buffer
     }
 
-    
+    sem_inc(&f->mutex);    // leave critical section (NOTE: move this before the increment to trigger corruption)
     sem_inc(&f->sem_full); // signal that there's a new full slot, waking a reader if needed
 }
 
