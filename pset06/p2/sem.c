@@ -30,8 +30,8 @@ int sem_try(struct sem *s) { // attempts P-operation but if the semaphore is not
     }
     
 }
-void sem_wait(struct sem *s) {    // "P-operation"
-    // handler for SIGUSR1
+void sem_wait(struct sem *s)
+{
     struct sigaction sa = {0};
     sa.sa_handler = sigusr1_handler;
     sigemptyset(&sa.sa_mask);
@@ -46,10 +46,12 @@ void sem_wait(struct sem *s) {    // "P-operation"
     while (1)
     {
         spin_lock(&s->lock);
+
         if (s->count > 0)
         {
             s->count--;
             spin_unlock(&s->lock);
+
             sigprocmask(SIG_SETMASK, &oldmask, NULL);
             return;
         }
@@ -57,16 +59,9 @@ void sem_wait(struct sem *s) {    // "P-operation"
         s->waiting[my_procnum] = 1;
         s->pids[my_procnum] = getpid();
         spin_unlock(&s->lock);
-
-
-        
-
         suspend_mask = oldmask;
-        sigdelset(&suspend_mask, SIGUSR1); // clear
-
+        sigdelset(&suspend_mask, SIGUSR1);
         sigsuspend(&suspend_mask);
-
-        //sigprocmask(SIG_SETMASK, &oldmask, NULL);
     }
 }
 void sem_inc(struct sem *s) {
@@ -74,7 +69,7 @@ void sem_inc(struct sem *s) {
     s->count++;
     if (s->count > 0) { // waking up prcocesses
         for (int i = 0; i < N_PROC; i++) {
-            if (s->waiting[i] == 1) {
+            if (s->waiting[i]) {
                 s->waiting[i] = 0;
                 kill(s->pids[i], SIGUSR1); 
             }

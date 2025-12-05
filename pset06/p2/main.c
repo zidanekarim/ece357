@@ -1,8 +1,8 @@
 #include "fifo.h"
 #include "sem.h"
-#define READERS 10
-#define WRITERS 10
-#define ITERATIONS 50000
+#define READERS 1
+#define WRITERS 30
+#define ITERATIONS 100000
 int my_procnum; // just for testing
 
 
