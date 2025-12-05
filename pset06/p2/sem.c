@@ -2,7 +2,7 @@
 
 
 void sigusr1_handler(int signum) {
-    ;
+    ; // do nothing, just return to wake up from sigsuspend
 }
 
 
@@ -41,6 +41,8 @@ void sem_wait(struct sem *s) {    // "P-operation"
     sigemptyset(&block_mask);
     sigaddset(&block_mask, SIGUSR1);
 
+    sigprocmask(SIG_BLOCK, &block_mask, &oldmask);
+
     while (1)
     {
         spin_lock(&s->lock);
@@ -48,6 +50,7 @@ void sem_wait(struct sem *s) {    // "P-operation"
         {
             s->count--;
             spin_unlock(&s->lock);
+            sigprocmask(SIG_SETMASK, &oldmask, NULL);
             return;
         }
 
@@ -55,15 +58,15 @@ void sem_wait(struct sem *s) {    // "P-operation"
         s->pids[my_procnum] = getpid();
         spin_unlock(&s->lock);
 
-        // block SIGUSR1, save old mask
-        sigprocmask(SIG_BLOCK, &block_mask, &oldmask);
+
+        
 
         suspend_mask = oldmask;
         sigdelset(&suspend_mask, SIGUSR1); // clear
 
         sigsuspend(&suspend_mask);
 
-        sigprocmask(SIG_SETMASK, &oldmask, NULL);
+        //sigprocmask(SIG_SETMASK, &oldmask, NULL);
     }
 }
 void sem_inc(struct sem *s) {
