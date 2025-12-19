@@ -7,7 +7,7 @@
 
 _start:
 loop:
-    mov $63, %rax
+    mov $0, %rax
     mov $0, %rdi
     mov $buf, %rsi
     mov $4096, %rdx
@@ -16,7 +16,7 @@ loop:
     cmp $0, %rax
     jle done
 
-    mov $64, %rax
+    mov $1, %rax
     mov $1, %rdi
     mov $buf, %rsi
     mov %rax, %rdx
@@ -25,5 +25,5 @@ loop:
 
 done:
     mov %rax, %rdi
-    mov $93, %rax
+    mov $60, %rax
     syscall
