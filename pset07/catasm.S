@@ -1,6 +1,6 @@
-# read is 63, write is 64, exit is 93 (this is on wsl2.0 using ubuntu)
+# read is 0, write is 1, exit is 603 
 .section .bss
-.lcomm buf, 4096
+.lcomm buf, 4096 # looked this up wtvr was in instructions did not work
 
 .section .text
 .global _start
@@ -16,10 +16,10 @@ loop:
     cmp $0, %rax
     jle done
 
+    mov %rax, %rdx
     mov $1, %rax
     mov $1, %rdi
     mov $buf, %rsi
-    mov %rax, %rdx
     syscall
     jmp loop
 
